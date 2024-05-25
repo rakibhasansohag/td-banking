@@ -43,7 +43,7 @@ const MobileNav = ({ user }: MobileNavProps) => {
               height={34}
               alt="Side bar logo"
             />
-            <h1 className="text-[26px] font-ibm-plex-serif font-bold text-black-1 ">
+            <h1 className="text-26 font-ibm-plex-serif font-bold text-black-1 ">
               TD Bank
             </h1>
           </Link>
@@ -74,12 +74,9 @@ const MobileNav = ({ user }: MobileNavProps) => {
                         />
 
                         <p
-                          className={cn(
-                            "text-[16px] font-semibold text-black-2",
-                            {
-                              "text-white": isActive,
-                            }
-                          )}
+                          className={cn("text-16 font-semibold text-black-2", {
+                            "text-white": isActive,
+                          })}
                         >
                           {item.label}
                         </p>
