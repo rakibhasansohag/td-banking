@@ -380,3 +380,35 @@
     @apply text-16 font-semibold text-black-2 max-xl:hidden;
   }
 }
+
+/* FOR LOADING DOTS..... */
+@keyframes blink {
+  0% {
+    opacity: 0.2;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.2;
+  }
+}
+
+.loading-dots {
+  display: inline-block;
+}
+
+.loading-dots .dot1,
+.loading-dots .dot2,
+.loading-dots .dot3 {
+  display: inline-block;
+  animation: blink 1.4s infinite both;
+}
+
+.loading-dots .dot2 {
+  animation-delay: 0.2s;
+}
+
+.loading-dots .dot3 {
+  animation-delay: 0.4s;
+}
