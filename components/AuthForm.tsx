@@ -6,6 +6,8 @@ import React, { useState } from "react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -20,9 +22,13 @@ import {
 import { Input } from "@/components/ui/input";
 import CustomInput from "./CustomInput";
 import { AuthFormSchema } from "@/lib/utils";
-import { Loader2 } from "lucide-react";
+import { getLoggedInUser, signIn, signUp } from "@/lib/actions/user.actions";
+
+// TODO : Will implemented more error handling in sign-in user and sign-up user
 
 const AuthForm = ({ type }: { type: string }) => {
+  const router = useRouter();
+
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -37,14 +43,30 @@ const AuthForm = ({ type }: { type: string }) => {
   });
 
   // 2. Define a submit handler.
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  const onSubmit = async (data: z.infer<typeof formSchema>) => {
+    setIsLoading(true);
     // Do something with the form values.
     // ✅ This will be type-safe and validated.
+    try {
+      // Sign Up with Appwrite & Create plaid token
+      if (type === "sign-up") {
+        const newUser = await signUp(data);
+        setUser(newUser);
+      }
 
-    setIsLoading(true);
-    console.log(values);
-    setTimeout(() => setIsLoading(false), 2000); // Simulate an API call
-  }
+      if (type === "sign-in") {
+        const response = await signIn({
+          email: data?.email,
+          password: data?.password,
+        });
+        if (response) router.push("/");
+      }
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <section className="auth-form">
@@ -100,7 +122,6 @@ const AuthForm = ({ type }: { type: string }) => {
                     label="Address"
                     placeholder="Enter Your Specific Address"
                   />
-
                   <div className="flex gap-4">
                     <CustomInput
                       control={form.control}
@@ -108,6 +129,7 @@ const AuthForm = ({ type }: { type: string }) => {
                       label="City"
                       placeholder=" Example: Dhaka"
                     />
+
                     <CustomInput
                       control={form.control}
                       name="postalCode"
@@ -115,6 +137,12 @@ const AuthForm = ({ type }: { type: string }) => {
                       placeholder="Example: 1219"
                     />
                   </div>
+                  <CustomInput
+                    control={form.control}
+                    name="country"
+                    label="Country"
+                    placeholder=" Example: Bangladesh"
+                  />
                   <div className="flex gap-4">
                     <CustomInput
                       control={form.control}
