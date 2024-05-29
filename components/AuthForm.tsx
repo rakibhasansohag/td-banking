@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import CustomInput from "./CustomInput";
 import { AuthFormSchema } from "@/lib/utils";
 import { getLoggedInUser, signIn, signUp } from "@/lib/actions/user.actions";
+import PlaidLink from "./ui/PlaidLink";
 
 // TODO : Will implemented more error handling in sign-in user and sign-up user
 
@@ -95,7 +96,9 @@ const AuthForm = ({ type }: { type: string }) => {
         </div>
       </header>
       {user ? (
-        <div className="flex flex-col gap-4">{/* {plaidLink} */}</div>
+        <div className="flex flex-col gap-4">
+          <PlaidLink />
+        </div>
       ) : (
         <>
           <Form {...form}>
