@@ -143,14 +143,14 @@ const AuthForm = ({ type }: { type: string }) => {
                       control={form.control}
                       name="city"
                       label="City"
-                      placeholder=" Example: Dhaka || York CIty"
+                      placeholder=" Example: New York CIty"
                     />
 
                     <CustomInput
                       control={form.control}
                       name="postalCode"
                       label="Postal Code"
-                      placeholder="Example: 1219"
+                      placeholder="Example: 12345"
                     />
                   </div>
                   <CustomInput
@@ -170,7 +170,7 @@ const AuthForm = ({ type }: { type: string }) => {
                       control={form.control}
                       name="ssn"
                       label="ssn number"
-                      placeholder="Example: 975457867"
+                      placeholder="Example: 1234"
                     />
                   </div>
                 </>

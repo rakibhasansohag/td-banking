@@ -21,6 +21,7 @@ const PlaidLink = ({ user, variant }: PlaidLinkProps) => {
   useEffect(() => {
     const getLinkToken = async () => {
       const data = await createLinkToken(user);
+      console.log("Link Token:", data?.linkToken);
       setToken(data?.linkToken);
     };
     getLinkToken();
@@ -44,6 +45,13 @@ const PlaidLink = ({ user, variant }: PlaidLinkProps) => {
   };
 
   const { open, ready } = usePlaidLink(config);
+
+  useEffect(() => {
+    if (ready && token) {
+      open();
+    }
+  }, [ready, token, open]);
+
   return (
     <>
       {variant === "primary" ? (
