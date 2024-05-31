@@ -1,5 +1,7 @@
 "use server";
 
+// TODO: there will be an error on user data ssn and state
+
 import { ID } from "node-appwrite";
 import { createAdminClient, createSessionClient } from "../appwrite";
 import { cookies } from "next/headers";
@@ -33,11 +35,12 @@ export const signIn = async ({ email, password }: signInProps) => {
   }
 };
 
-export const signUp = async (userData: SignUpParams) => {
-  let newUserAccount;
-  try {
-    const { email, password, firstName, lastName } = userData;
+export const signUp = async ({ password, ...userData }: SignUpParams) => {
+  const { email, firstName, lastName } = userData;
 
+  let newUserAccount;
+
+  try {
     // Mutation / Database / Make Fetch Request
     const { account, database } = await createAdminClient();
 
@@ -53,9 +56,9 @@ export const signUp = async (userData: SignUpParams) => {
     const dwollaCustomerUrl = await createDwollaCustomer({
       ...userData,
       type: "personal",
-      state: "",
-      ssn: "",
     });
+
+    console.log("dwollaCustomerUrl", dwollaCustomerUrl);
 
     if (!dwollaCustomerUrl) throw new Error("Error Creating Dwolla Customer");
 
@@ -69,7 +72,7 @@ export const signUp = async (userData: SignUpParams) => {
         ...userData,
         userId: newUserAccount.$id,
         dwollaCustomerId,
-        dwollaCustomerUrl,
+        dwollaCustomerUrl: dwollaCustomerUrl,
       }
     );
 
@@ -119,7 +122,7 @@ export const createLinkToken = async (user: User) => {
       user: {
         client_user_id: user.$id,
       },
-      client_name: user.name,
+      client_name: `${user.firstName} ${user.lastName}`,
       products: ["auth"] as Products[],
       language: "en", // optional
       country_codes: ["US", "BD"] as CountryCode[], // optional

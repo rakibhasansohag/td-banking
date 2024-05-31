@@ -6,16 +6,16 @@ declare type SearchParamProps = {
 };
 
 // ========================================
-
+// TODO: there will be an error on user data ssn and state
 declare type SignUpParams = {
   firstName: string;
   lastName: string;
   address1: string;
   city: string;
-  country: string;
+  state: string;
   postalCode: string;
   dateOfBirth: string;
-  nid: string;
+  ssn: string;
   email: string;
   password: string;
 };

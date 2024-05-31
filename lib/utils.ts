@@ -200,6 +200,7 @@ export const AuthFormSchema = (type: string) =>
   z.object({
     // Point:  Both form
     email: z.string().email(),
+
     password: z.string().min(6),
 
     // Point:Sign Up form
@@ -207,12 +208,12 @@ export const AuthFormSchema = (type: string) =>
     firstName: type === "sign-in" ? z.string().optional() : z.string().min(3),
     lastName: type === "sign-in" ? z.string().optional() : z.string().min(3),
     address1: type === "sign-in" ? z.string().optional() : z.string().max(50),
-    country:
-      type === "sign-in" ? z.string().optional() : z.string().min(4).max(30),
+    state:
+      type === "sign-in" ? z.string().optional() : z.string().min(2).max(30),
     city:
       type === "sign-in" ? z.string().optional() : z.string().min(4).max(30),
     postalCode:
       type === "sign-in" ? z.string().optional() : z.string().min(3).max(7),
     dateOfBirth: type === "sign-in" ? z.string().optional() : z.string().min(3),
-    nid: type === "sign-in" ? z.string().optional() : z.string().min(8).max(12),
+    ssn: type === "sign-in" ? z.string().optional() : z.string().min(4).max(12),
   });
