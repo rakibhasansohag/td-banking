@@ -2,7 +2,7 @@
 
 // TODO: there will be an error on user data ssn and state
 
-import { ID } from "node-appwrite";
+import { ID, Query } from "node-appwrite";
 import { createAdminClient, createSessionClient } from "../appwrite";
 import { cookies } from "next/headers";
 import { encryptId, extractCustomerIdFromUrl, parseStringify } from "../utils";
@@ -22,14 +22,43 @@ const {
   APPWRITE_BANK_COLLECTION_ID: BANK_COLLECTION_ID,
 } = process.env;
 
+export const getUserInfo = async ({ userId }: getUserInfoProps) => {
+  try {
+    const { database } = await createAdminClient();
+
+    const user = await database.listDocuments(
+      DATABASE_ID!,
+      USER_COLLECTION_ID!,
+      [Query.equal("userId", [userId])]
+    );
+
+    if (user.documents.length === 0) {
+      throw new Error("No User Found with this ID");
+    }
+
+    return parseStringify(user.documents[0]);
+  } catch (error) {
+    console.log(error);
+  }
+};
+
 export const signIn = async ({ email, password }: signInProps) => {
   try {
     // Mutation / Database / Make Fetch Request
     const { account } = await createAdminClient();
 
-    const response = await account.createEmailPasswordSession(email, password);
+    const session = await account.createEmailPasswordSession(email, password);
 
-    return parseStringify(response);
+    cookies().set("appwrite-session", session.secret, {
+      path: "/",
+      httpOnly: true,
+      sameSite: "strict",
+      secure: true,
+    });
+
+    const user = await getUserInfo({ userId: session?.userId });
+
+    return parseStringify(user);
   } catch (error) {
     console.error("Error", error);
   }
@@ -58,7 +87,7 @@ export const signUp = async ({ password, ...userData }: SignUpParams) => {
       type: "personal",
     });
 
-    console.log("dwollaCustomerUrl", dwollaCustomerUrl);
+    // console.log("dwollaCustomerUrl", dwollaCustomerUrl);
 
     if (!dwollaCustomerUrl) throw new Error("Error Creating Dwolla Customer");
 
@@ -70,7 +99,7 @@ export const signUp = async ({ password, ...userData }: SignUpParams) => {
       ID.unique(),
       {
         ...userData,
-        userId: newUserAccount.$id,
+        userId: newUserAccount?.$id,
         dwollaCustomerId,
         dwollaCustomerUrl: dwollaCustomerUrl,
       }
@@ -95,10 +124,15 @@ export async function getLoggedInUser() {
   try {
     const { account } = await createSessionClient();
 
-    const user = await account.get();
+    const result = await account.get();
+
+    // if (!result) return null;
+
+    const user = await getUserInfo({ userId: result?.$id });
 
     return parseStringify(user);
   } catch (error) {
+    console.error(error);
     return null;
   }
 }
@@ -206,8 +240,7 @@ export const exchangePublicToken = async ({
     });
 
     // If the funding source URL is not created, return null or throw an error
-    if (!fundingSourceUrl)
-      throw new Error("Funding source URL not created", Error);
+    if (!fundingSourceUrl) throw new Error("Funding source URL not created");
 
     // Create a bank account using the user ID, item ID, account ID, access token, funding source URL, and sharable ID
     await createBankAccount({
@@ -228,5 +261,55 @@ export const exchangePublicToken = async ({
     });
   } catch (error) {
     console.error("An error occurred:", error);
+  }
+};
+
+// Point : Get all bank accounts
+export const getBanks = async ({ userId }: getBanksProps) => {
+  try {
+    const { database } = await createAdminClient();
+
+    const banks = await database.listDocuments(
+      DATABASE_ID!,
+      BANK_COLLECTION_ID!,
+      [Query.equal("userId", [userId])]
+    );
+
+    console.log(banks);
+
+    return parseStringify(banks.documents);
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+// Point : Get Single Bank Account
+export const getBank = async ({ documentId }: { documentId: string }) => {
+  try {
+    const { database } = await createAdminClient();
+
+    // Log documentId for debugging
+    console.log("Received document ID:", documentId);
+
+    if (!documentId || typeof documentId !== "string") {
+      throw new Error("Invalid document ID");
+    }
+
+    const bank = await database.listDocuments(
+      DATABASE_ID!,
+      BANK_COLLECTION_ID!,
+      [Query.equal("$id", documentId)]
+    );
+
+    if (bank.documents.length === 0) {
+      throw new Error("No Bank Found with this ID");
+    }
+
+    console.log("Bank found:", bank.documents[0]);
+
+    return parseStringify(bank.documents[0]);
+  } catch (error) {
+    console.error("Error in getBank:", error);
+    throw error;
   }
 };

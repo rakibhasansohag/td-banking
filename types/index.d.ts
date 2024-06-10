@@ -83,13 +83,14 @@ declare type Transaction = {
 };
 
 declare type Bank = {
+  sharableId: any;
   $id: string;
   accountId: string;
   bankId: string;
   accessToken: string;
   fundingSourceUrl: string;
   userId: string;
-  sharableId: string;
+  shareableId: string;
 };
 
 declare type AccountTypes =

@@ -4,7 +4,11 @@ import { useRouter } from "next/navigation";
 import React from "react";
 
 interface FooterProps {
-  user: { name: string; email: string };
+  user: {
+    firstName: any;
+    name: string;
+    email: string;
+  };
   type?: string;
 }
 
@@ -19,14 +23,14 @@ const Footer = ({ user, type = "desktop" }: FooterProps) => {
   return (
     <footer className="footer flex items-center space-x-4 p-4 bg-gray-100">
       <div className={type === "mobile" ? "footer_name-mobile" : "footer_name"}>
-        <p className="text-xl font-bold text-gray-700">{user?.name[0]}</p>
+        <p className="text-xl font-bold text-gray-700">{user?.firstName[0]}</p>
       </div>
 
       <div
         className={type === "mobile" ? "footer_email-mobile" : "footer_email"}
       >
         <h1 className="text-14 truncate font-normal text-gray-600">
-          {user?.name}
+          {user?.firstName}
         </h1>
         <p className="text-14 truncate font-semibold text-gray-700">
           {user?.email}
