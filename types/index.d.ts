@@ -6,7 +6,7 @@ declare type SearchParamProps = {
 };
 
 // ========================================
-// TODO: there will be an error on user data ssn and state
+
 declare type SignUpParams = {
   firstName: string;
   lastName: string;
@@ -60,7 +60,7 @@ declare type Account = {
   type: string;
   subtype: string;
   appwriteItemId: string;
-  sharableId: string;
+  shareableId: string;
 };
 
 declare type Transaction = {
@@ -83,7 +83,6 @@ declare type Transaction = {
 };
 
 declare type Bank = {
-  sharableId: any;
   $id: string;
   accountId: string;
   bankId: string;
@@ -212,7 +211,7 @@ declare interface TotalBalanceBoxProps {
 
 declare interface FooterProps {
   user: User;
-  type?: "mobile" | "desktop";
+  type?: 'mobile' | 'desktop'
 }
 
 declare interface RightSidebarProps {
@@ -221,7 +220,7 @@ declare interface RightSidebarProps {
   banks: Bank[] & Account[];
 }
 
-declare interface SidebarProps {
+declare interface SiderbarProps {
   user: User;
 }
 
@@ -315,7 +314,7 @@ declare interface createBankAccountProps {
   accountId: string;
   bankId: string;
   fundingSourceUrl: string;
-  sharableId: string;
+  shareableId: string;
 }
 
 declare interface getBanksProps {
