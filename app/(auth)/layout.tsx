@@ -11,7 +11,7 @@ export default function RootLayout({
       <div className="auth-asset">
         <div>
           <Image
-            src="/td-banking.svg"
+            src="/td-banking.png"
             alt="Auth image"
             width={500}
             height={500}

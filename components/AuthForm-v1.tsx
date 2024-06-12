@@ -10,7 +10,6 @@ import { useForm } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import CustomInput from "./CustomInput";
 import { authFormSchema } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
@@ -58,30 +57,31 @@ const AuthForm = ({ type }: { type: string }) => {
         const newUser = await signUp(userData);
         setUser(newUser);
       } else {
+        toast.error("Sign Up Failed");
+        // Sign in with Appwrite
         setUser(null);
       }
 
       if (type === "sign-in") {
-        if (!data.email || !data.password) {
-          toast.error("Please enter your email and password");
-          setIsLoading(false);
-          return;
-        }
-
         const response = await signIn({
-          email: data.email,
-          password: data.password,
+          email: data?.email,
+          password: data?.password,
         });
 
         if (response) {
           toast.success("Sign In Successful");
           router.push("/");
+        } else {
+          toast.error("invalid credentials");
         }
       }
     } catch (error: any) {
       console.log("error signing in", error);
-      toast.error(error?.response?.message || error?.message);
-      setIsLoading(false);
+      if (type === "sign-up") {
+        toast.error(error?.message || "Sign Up Failed");
+      } else {
+        toast.error(error?.response?.message || "Sign In Failed");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -122,6 +122,63 @@ const AuthForm = ({ type }: { type: string }) => {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
               {type === "sign-up" && (
+                // <>
+                //   <div className="flex gap-4">
+                //     <CustomInput
+                //       control={form.control}
+                //       name="firstName"
+                //       label="First Name"
+                //       placeholder="Enter your first name"
+                //     />
+                //     <CustomInput
+                //       control={form.control}
+                //       name="lastName"
+                //       label="Last Name"
+                //       placeholder="Enter your first name"
+                //     />
+                //   </div>
+                //   <CustomInput
+                //     control={form.control}
+                //     name="address1"
+                //     label="Address"
+                //     placeholder="Enter your specific address"
+                //   />
+                //   <CustomInput
+                //     control={form.control}
+                //     name="city"
+                //     label="City"
+                //     placeholder="Enter your city"
+                //   />
+                //   <div className="flex gap-4">
+                //     <CustomInput
+                //       control={form.control}
+                //       name="state"
+                //       label="State"
+                //       placeholder="Example: NY"
+                //     />
+                //     <CustomInput
+                //       control={form.control}
+                //       name="postalCode"
+                //       label="Postal Code"
+                //       placeholder="Example: 11101"
+                //     />
+                //   </div>
+                //   <div className="flex gap-4">
+                //     <CustomInput
+                //       control={form.control}
+                //       name="dateOfBirth"
+                //       label="Date of Birth"
+                //       placeholder="YYYY-MM-DD"
+                //     />
+                //     <CustomInput
+                //       control={form.control}
+                //       name="ssn"
+                //       label="SSN"
+                //       placeholder="Example: 1234"
+                //     />
+                //   </div>
+                // </>
+
                 <>
                   <div className="flex gap-4">
                     <CustomInput
