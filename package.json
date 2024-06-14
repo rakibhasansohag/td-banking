@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "sentry:releases": "sentry-cli releases new $(git rev-parse HEAD) --org=developer-rakib"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",
