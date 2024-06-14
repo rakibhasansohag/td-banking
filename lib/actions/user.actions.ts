@@ -80,10 +80,24 @@ export const signUp = async ({ password, ...userData }: SignUpParams) => {
   const { email, firstName, lastName } = userData;
 
   let newUserAccount;
+  let dwollaCustomerUrl;
+  let newUser;
 
   try {
     const { account, database } = await createAdminClient();
 
+    // Check if user with the same email already exists in Appwrite auth
+    const existingUsers = await database.listDocuments(
+      DATABASE_ID!,
+      USER_COLLECTION_ID!,
+      [Query.equal("email", email)]
+    );
+
+    if (existingUsers.total > 0) {
+      throw new Error("A user with the same email already exists.");
+    }
+
+    // Create user in Appwrite authentication
     newUserAccount = await account.create(
       ID.unique(),
       email,
@@ -91,19 +105,20 @@ export const signUp = async ({ password, ...userData }: SignUpParams) => {
       `${firstName} ${lastName}`
     );
 
-    if (!newUserAccount) throw new AppError("Error creating user");
+    if (!newUserAccount) throw new Error("Error creating user");
 
-    const dwollaCustomerUrl = await createDwollaCustomer({
+    // Create Dwolla customer
+    dwollaCustomerUrl = await createDwollaCustomer({
       ...userData,
       type: "personal",
     });
 
-    if (!dwollaCustomerUrl)
-      throw new AppError("Error creating Dwolla customer");
+    if (!dwollaCustomerUrl) throw new Error("Error creating Dwolla customer");
 
     const dwollaCustomerId = extractCustomerIdFromUrl(dwollaCustomerUrl);
 
-    const newUser = await database.createDocument(
+    // Create user document in Appwrite database
+    newUser = await database.createDocument(
       DATABASE_ID!,
       USER_COLLECTION_ID!,
       ID.unique(),
@@ -115,19 +130,26 @@ export const signUp = async ({ password, ...userData }: SignUpParams) => {
       }
     );
 
-    const session = await account.createEmailPasswordSession(email, password);
-
-    cookies().set("appwrite-session", session.secret, {
-      path: "/",
-      httpOnly: true,
-      sameSite: "strict",
-      secure: true,
-    });
-
     return parseStringify(newUser);
   } catch (error: any) {
     console.error("Error signing up:", error);
-    throw new AppError(getErrorMessage(error));
+
+    // Cleanup: If the user was created in Appwrite auth but something else failed,
+    // delete the user from Appwrite auth to prevent orphaned users.
+    if (newUserAccount && newUserAccount.$id) {
+      try {
+        const { user } = await createAdminClient();
+        await user.delete(newUserAccount.$id);
+      } catch (cleanupError) {
+        console.error("Error during cleanup:", cleanupError);
+      }
+    }
+
+    throw new Error(
+      error?.response?.message ||
+        error?.message ||
+        "An error occurred during signup."
+    );
   }
 };
 
