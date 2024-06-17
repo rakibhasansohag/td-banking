@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:disabled-sentry": "set SENTRY_DISABLE=1 && npm run build",
     "start": "next start",
     "lint": "next lint",
     "sentry:releases": "sentry-cli releases new $(git rev-parse HEAD) --org=developer-rakib"
