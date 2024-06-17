@@ -7,7 +7,6 @@ import Loader from "./Loader";
 import { Pagination } from "./Pagination";
 
 const RecentTransactions = ({
-  accounts,
   transactions = [],
   appwriteItemId,
   page = 1,
