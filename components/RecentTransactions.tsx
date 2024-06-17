@@ -1,16 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Image from "next/image";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BankTabItem } from "./BankTabItem";
-import BankInfo from "./BankInfo";
 import TransactionsTable from "./TransactionsTable";
-import { Pagination } from "./Pagination";
 import Loader from "./Loader";
+import { Pagination } from "./Pagination";
 
 const RecentTransactions = ({
   accounts,
@@ -19,29 +13,47 @@ const RecentTransactions = ({
   page = 1,
 }: RecentTransactionsProps) => {
   const [loading, setLoading] = useState(true);
-  const [currentTransactions, setCurrentTransactions] = useState<Transaction[]>(
-    []
-  );
+  const [currentPage, setCurrentPage] = useState(page);
+  const [cachedTransactions, setCachedTransactions] = useState<{
+    [key: number]: Transaction[];
+  }>({});
+
   const rowsPerPage = 10;
   const totalPages = Math.ceil(transactions.length / rowsPerPage);
 
-  const indexOfLastTransaction = page * rowsPerPage;
+  const indexOfLastTransaction = currentPage * rowsPerPage;
   const indexOfFirstTransaction = indexOfLastTransaction - rowsPerPage;
 
+  const currentTransactions = useMemo(() => {
+    return transactions.slice(indexOfFirstTransaction, indexOfLastTransaction);
+  }, [transactions, indexOfFirstTransaction, indexOfLastTransaction]);
+
   useEffect(() => {
-    // Simulate data fetching
     const fetchData = async () => {
+      if (cachedTransactions[currentPage]) {
+        // If transactions for the current page are already cached, use them
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
-      // Simulate a delay to mimic data fetching
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      setCurrentTransactions(
-        transactions.slice(indexOfFirstTransaction, indexOfLastTransaction)
-      );
+
+      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate an async fetch
+
+      setCachedTransactions((prevCache) => ({
+        ...prevCache,
+        [currentPage]: currentTransactions,
+      }));
+
       setLoading(false);
     };
 
     fetchData();
-  }, [page, transactions, indexOfFirstTransaction, indexOfLastTransaction]);
+  }, [currentPage, currentTransactions, cachedTransactions]);
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+  };
 
   return (
     <section className="recent-transactions">
@@ -58,39 +70,20 @@ const RecentTransactions = ({
       {loading ? (
         <Loader />
       ) : (
-        <Tabs defaultValue={appwriteItemId} className="w-full">
-          <TabsList className="recent-transactions-tablist">
-            {accounts.map((account) => (
-              <TabsTrigger key={account.id} value={account.appwriteItemId}>
-                <BankTabItem
-                  key={account.id}
-                  account={account}
-                  appwriteItemId={appwriteItemId}
-                />
-              </TabsTrigger>
-            ))}
-          </TabsList>
-
-          {accounts.map((account) => (
-            <TabsContent
-              value={account.appwriteItemId}
-              key={account.id}
-              className="space-y-4"
-            >
-              <BankInfo
-                account={account}
-                appwriteItemId={appwriteItemId}
-                type="full"
+        <div className="w-full space-y-4">
+          <TransactionsTable
+            transactions={cachedTransactions[currentPage] || []}
+          />
+          {totalPages > 1 && (
+            <div className="my-4 w-full">
+              <Pagination
+                totalPages={totalPages}
+                page={currentPage}
+                onPageChange={handlePageChange}
               />
-              <TransactionsTable transactions={currentTransactions} />
-              {totalPages > 1 && (
-                <div className="my-4 w-full">
-                  <Pagination totalPages={totalPages} page={page} />
-                </div>
-              )}
-            </TabsContent>
-          ))}
-        </Tabs>
+            </div>
+          )}
+        </div>
       )}
     </section>
   );

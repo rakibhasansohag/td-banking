@@ -64,6 +64,7 @@ declare type Account = {
 };
 
 declare type Transaction = {
+  appwriteItemId: string;
   id: string;
   $id: string;
   name: string;
