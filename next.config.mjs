@@ -2,7 +2,7 @@ import { withSentryConfig } from "@sentry/nextjs";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true, // Added from next.config.js
+  reactStrictMode: true,
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -10,8 +10,12 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   productionBrowserSourceMaps: true,
-  experimental: {
-    productionTracingIgnoreSpans: true,
+
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals = [...config.externals, "@prisma/instrumentation"];
+    }
+    return config;
   },
 };
 
@@ -39,11 +43,6 @@ const sentryOptions = {
   hideSourceMaps: true,
   disableLogger: true,
   automaticVercelMonitors: true,
-  configureWebpack: (config, { dev, isServer, webpack }) => {
-    console.log(`Webpack config for ${isServer ? "server" : "client"}:`);
-    console.log(JSON.stringify(config.resolve.alias, null, 2));
-    return config;
-  },
 };
 
 // Wrap in a function to allow disabling Sentry

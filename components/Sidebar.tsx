@@ -1,12 +1,16 @@
-'use client'
+"use client";
 
-import { sidebarLinks } from '@/constants'
-import { cn } from '@/lib/utils'
-import Image from 'next/image'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import Footer from './Footer'
-import PlaidLink from './PlaidLink'
+import { sidebarLinks } from "@/constants";
+import { cn } from "@/lib/utils";
+
+import { Suspense } from "react";
+import dynamic from "next/dynamic";
+import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import Footer from "./Footer";
+import PlaidLink from "./PlaidLink";
+import Loader from "./Loader";
 
 const Sidebar = ({ user }: SiderbarProps) => {
   const pathname = usePathname();
@@ -15,7 +19,7 @@ const Sidebar = ({ user }: SiderbarProps) => {
     <section className="sidebar">
       <nav className="flex flex-col gap-4">
         <Link href="/" className="mb-12 cursor-pointer flex items-center gap-2">
-          <Image 
+          <Image
             src="/icons/logo.svg"
             width={34}
             height={34}
@@ -25,20 +29,23 @@ const Sidebar = ({ user }: SiderbarProps) => {
           <h1 className="sidebar-logo">Horizon</h1>
         </Link>
 
-        {sidebarLinks.map((item) => {
-          const isActive = pathname === item.route || pathname.startsWith(`${item.route}/`)
+        {sidebarLinks?.map((item) => {
+          const isActive =
+            pathname === item.route || pathname.startsWith(`${item.route}/`);
 
           return (
-            <Link href={item.route} key={item.label}
-              className={cn('sidebar-link', { 'bg-bank-gradient': isActive })}
+            <Link
+              href={item.route}
+              key={item.label}
+              className={cn("sidebar-link", { "bg-bank-gradient": isActive })}
             >
               <div className="relative size-6">
-                <Image 
+                <Image
                   src={item.imgURL}
                   alt={item.label}
                   fill
                   className={cn({
-                    'brightness-[3] invert-0': isActive
+                    "brightness-[3] invert-0": isActive,
                   })}
                 />
               </div>
@@ -46,15 +53,19 @@ const Sidebar = ({ user }: SiderbarProps) => {
                 {item.label}
               </p>
             </Link>
-          )
+          );
         })}
-        
-        <PlaidLink user={user} />
+
+        <Suspense fallback={<Loader />}>
+          <PlaidLink user={user} />
+        </Suspense>
       </nav>
 
-      <Footer user={user} />
+      <Suspense fallback={<Loader />}>
+        <Footer user={user} />
+      </Suspense>
     </section>
-  )
-}
+  );
+};
 
-export default Sidebar
+export default Sidebar;
