@@ -1,7 +1,6 @@
 "use server";
 
 import { Client } from "dwolla-v2";
-import { AppError, getErrorMessage } from "../error";
 
 const getEnvironment = (): "production" | "sandbox" => {
   const environment = process.env.DWOLLA_ENV as string;
@@ -12,7 +11,7 @@ const getEnvironment = (): "production" | "sandbox" => {
     case "production":
       return "production";
     default:
-      throw new AppError(
+      throw new Error(
         "Dwolla environment should either be set to `sandbox` or `production`"
       );
   }
@@ -24,6 +23,7 @@ const dwollaClient = new Client({
   secret: process.env.DWOLLA_SECRET as string,
 });
 
+// Create a Dwolla Funding Source using a Plaid Processor Token
 export const createFundingSource = async (
   options: CreateFundingSourceOptions
 ) => {
@@ -34,13 +34,8 @@ export const createFundingSource = async (
         plaidToken: options.plaidToken,
       })
       .then((res) => res.headers.get("location"));
-  } catch (err: any) {
+  } catch (err) {
     console.error("Creating a Funding Source Failed: ", err);
-    throw new AppError(
-      getErrorMessage(err),
-      err.response?.status,
-      err.response?.data
-    );
   }
 };
 
@@ -51,13 +46,8 @@ export const createOnDemandAuthorization = async () => {
     );
     const authLink = onDemandAuthorization.body._links;
     return authLink;
-  } catch (err: any) {
+  } catch (err) {
     console.error("Creating an On Demand Authorization Failed: ", err);
-    throw new AppError(
-      getErrorMessage(err),
-      err.response?.status,
-      err.response?.data
-    );
   }
 };
 
@@ -68,13 +58,8 @@ export const createDwollaCustomer = async (
     return await dwollaClient
       .post("customers", newCustomer)
       .then((res) => res.headers.get("location"));
-  } catch (err: any) {
+  } catch (err) {
     console.error("Creating a Dwolla Customer Failed: ", err);
-    throw new AppError(
-      getErrorMessage(err),
-      err.response?.status,
-      err.response?.data
-    );
   }
 };
 
@@ -101,13 +86,8 @@ export const createTransfer = async ({
     return await dwollaClient
       .post("transfers", requestBody)
       .then((res) => res.headers.get("location"));
-  } catch (err: any) {
+  } catch (err) {
     console.error("Transfer fund failed: ", err);
-    throw new AppError(
-      getErrorMessage(err),
-      err.response?.status,
-      err.response?.data
-    );
   }
 };
 
@@ -117,8 +97,10 @@ export const addFundingSource = async ({
   bankName,
 }: AddFundingSourceParams) => {
   try {
+    // create dwolla auth link
     const dwollaAuthLinks = await createOnDemandAuthorization();
 
+    // add funding source to the dwolla customer & get the funding source url
     const fundingSourceOptions = {
       customerId: dwollaCustomerId,
       fundingSourceName: bankName,
@@ -126,12 +108,7 @@ export const addFundingSource = async ({
       _links: dwollaAuthLinks,
     };
     return await createFundingSource(fundingSourceOptions);
-  } catch (err: any) {
-    console.error("Adding a Funding Source Failed: ", err);
-    throw new AppError(
-      getErrorMessage(err),
-      err.response?.status,
-      err.response?.data
-    );
+  } catch (err) {
+    console.error("Transfer fund failed: ", err);
   }
 };

@@ -14,29 +14,13 @@ import {
 import { plaidClient } from "@/lib/plaid";
 import { revalidatePath } from "next/cache";
 import { addFundingSource, createDwollaCustomer } from "./dwolla.actions";
+import { AppError, getErrorMessage } from "../error";
 
 const {
   APPWRITE_DATABASE_ID: DATABASE_ID,
   APPWRITE_USER_COLLECTION_ID: USER_COLLECTION_ID,
   APPWRITE_BANK_COLLECTION_ID: BANK_COLLECTION_ID,
 } = process.env;
-
-class AppError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "AppError";
-  }
-}
-
-const getErrorMessage = (error: any): string => {
-  if (error?.response?.message) {
-    return error.response.message;
-  } else if (error?.message) {
-    return error.message;
-  } else {
-    return "An unknown error occurred";
-  }
-};
 
 export const getUserInfo = async ({ userId }: getUserInfoProps) => {
   try {

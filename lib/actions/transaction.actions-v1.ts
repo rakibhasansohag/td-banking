@@ -3,7 +3,6 @@
 import { ID, Query } from "node-appwrite";
 import { createAdminClient } from "../appwrite";
 import { parseStringify } from "../utils";
-import { AppError, getErrorMessage } from "../error";
 
 const {
   APPWRITE_DATABASE_ID: DATABASE_ID,
@@ -28,9 +27,8 @@ export const createTransaction = async (
     );
 
     return parseStringify(newTransaction);
-  } catch (error: any) {
-    console.error("Error creating transaction:", error);
-    throw new AppError(getErrorMessage(error));
+  } catch (error) {
+    console.log(error);
   }
 };
 
@@ -61,8 +59,7 @@ export const getTransactionsByBankId = async ({
     };
 
     return parseStringify(transactions);
-  } catch (error: any) {
-    console.error("Error fetching transactions by bank ID:", error);
-    throw new AppError(getErrorMessage(error));
+  } catch (error) {
+    console.log(error);
   }
 };

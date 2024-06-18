@@ -6,12 +6,13 @@ import PaymentTransferForm from "@/components/PaymentTransferForm";
 import Loader from "@/components/Loader";
 import { getAccounts } from "@/lib/actions/bank.actions";
 import { getLoggedInUser } from "@/lib/actions/user.actions";
+import { toast } from "sonner"; // Importing toast from sonner for displaying error messages
 
 const Transfer = () => {
   const [loggedInUser, setLoggedInUser] = useState<any>(null);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [initialLoad, setInitialLoad] = useState(true); // New state to track initial load
+  const [initialLoad, setInitialLoad] = useState(true); // State to track initial load
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
@@ -25,19 +26,35 @@ const Transfer = () => {
           setAccounts(accountsResponse.data);
         }
       } catch (err: unknown) {
-        if (err instanceof Error) {
-          setError(err);
-        } else {
-          setError(new Error("An unknown error occurred"));
-        }
+        handleValidationErrors(err); // Handle specific validation errors
+        console.log(err);
+        setLoading(false); // Set loading to false even on error
       } finally {
-        setLoading(false);
-        setInitialLoad(false); // Set initialLoad to false after first load
+        setInitialLoad(false);
       }
     };
 
     fetchData();
   }, []);
+
+  // Function to handle validation errors
+  const handleValidationErrors = (err: any) => {
+    if (
+      err?.response?.status === 400 &&
+      err?.response?.data?.code === "ValidationError"
+    ) {
+      const validationErrors = err?.response?.data?._embedded?.errors || [];
+      const errorMessage = validationErrors
+        .map((error: any) => error.message)
+        .join("\n");
+      console.log("----------TRANSFER ERROR---------", errorMessage);
+      toast.error(`Transfer fund failed: ${errorMessage}`); // Display error message in a toast
+    } else {
+      setError(
+        err instanceof Error ? err : new Error("An unknown error occurred")
+      );
+    }
+  };
 
   if (loading && initialLoad) {
     return <Loader />;

@@ -7,7 +7,6 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Suspense } from "react";
-import dynamic from "next/dynamic";
 
 import { createTransfer } from "@/lib/actions/dwolla.actions";
 import { createTransaction } from "@/lib/actions/transaction.actions";
@@ -28,11 +27,13 @@ import {
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import Loader from "./Loader";
+import { getErrorMessage, AppError } from "@/lib/error";
+import { toast } from "sonner";
 
 const formSchema = z.object({
   email: z.string().email("Invalid email address"),
   name: z.string().min(4, "Transfer note is too short"),
-  amount: z.string().min(4, "Amount is too short"),
+  amount: z.string().min(1, "Amount is too short"),
   senderBank: z.string().min(4, "Please select a valid bank account"),
   sharableId: z.string().min(8, "Please select a valid sharable Id"),
 });
@@ -40,6 +41,7 @@ const formSchema = z.object({
 const PaymentTransferForm = ({ accounts }: PaymentTransferFormProps) => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -54,6 +56,7 @@ const PaymentTransferForm = ({ accounts }: PaymentTransferFormProps) => {
 
   const submit = async (data: z.infer<typeof formSchema>) => {
     setIsLoading(true);
+    setError(null);
 
     try {
       const receiverAccountId = decryptId(data.sharableId);
@@ -67,10 +70,9 @@ const PaymentTransferForm = ({ accounts }: PaymentTransferFormProps) => {
         destinationFundingSourceUrl: receiverBank.fundingSourceUrl,
         amount: data.amount,
       };
-      // create transfer
+
       const transfer = await createTransfer(transferParams);
 
-      // create transfer transaction
       if (transfer) {
         const transaction = {
           name: data.name,
@@ -86,15 +88,20 @@ const PaymentTransferForm = ({ accounts }: PaymentTransferFormProps) => {
 
         if (newTransaction) {
           form.reset();
+          toast.success("Transfer created successfully");
           router.push("/");
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Submitting create transfer request failed: ", error);
+      toast.error("Error creating transfer");
+      setError(getErrorMessage(error));
     }
 
     setIsLoading(false);
   };
+
+  console.log(error);
 
   return (
     <Suspense fallback={<Loader />}>
@@ -252,6 +259,15 @@ const PaymentTransferForm = ({ accounts }: PaymentTransferFormProps) => {
               )}
             </Button>
           </div>
+          {error && (
+            <div className="mt-4 text-red-600">
+              <p>
+                {
+                  "Validation Error - Please try again and provide correct details"
+                }
+              </p>
+            </div>
+          )}
         </form>
       </Form>
     </Suspense>
