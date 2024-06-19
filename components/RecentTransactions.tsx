@@ -1,21 +1,23 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BankTabItem } from "./BankTabItem";
+import BankInfo from "./BankInfo";
 import TransactionsTable from "./TransactionsTable";
+import Pagination from "./Pagination";
+import { useState, useEffect } from "react";
 import Loader from "./Loader";
-import { Pagination } from "./Pagination";
 
 const RecentTransactions = ({
+  accounts,
   transactions = [],
   appwriteItemId,
   page = 1,
 }: RecentTransactionsProps) => {
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(page);
-  const [cachedTransactions, setCachedTransactions] = useState<{
-    [key: number]: Transaction[];
-  }>({});
+  const [currentTab, setCurrentTab] = useState(appwriteItemId);
 
   const rowsPerPage = 10;
   const totalPages = Math.ceil(transactions.length / rowsPerPage);
@@ -23,35 +25,35 @@ const RecentTransactions = ({
   const indexOfLastTransaction = currentPage * rowsPerPage;
   const indexOfFirstTransaction = indexOfLastTransaction - rowsPerPage;
 
-  const currentTransactions = useMemo(() => {
-    return transactions.slice(indexOfFirstTransaction, indexOfLastTransaction);
-  }, [transactions, indexOfFirstTransaction, indexOfLastTransaction]);
+  const currentTransactions = transactions.slice(
+    indexOfFirstTransaction,
+    indexOfLastTransaction
+  );
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (cachedTransactions[currentPage]) {
-        // If transactions for the current page are already cached, use them
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate an async fetch
-
-      setCachedTransactions((prevCache) => ({
-        ...prevCache,
-        [currentPage]: currentTransactions,
-      }));
-
-      setLoading(false);
-    };
-
-    fetchData();
-  }, [currentPage, currentTransactions, cachedTransactions]);
+    // Check if data has been loaded before
+    const dataLoaded = sessionStorage.getItem("dataLoaded");
+    if (!dataLoaded) {
+      // Simulate a data fetching delay
+      setTimeout(() => {
+        setIsLoading(false);
+        sessionStorage.setItem("dataLoaded", "true");
+      }, 1000); // Adjust the delay as needed
+    } else {
+      setIsLoading(false);
+    }
+  }, []);
 
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
+  };
+
+  const handleTabChange = (newTab: string) => {
+    setCurrentTab(newTab);
+    setIsLoading(true);
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 1000); // Simulate a data fetching delay for tab change
   };
 
   return (
@@ -66,23 +68,52 @@ const RecentTransactions = ({
         </Link>
       </header>
 
-      {loading ? (
+      {isLoading ? (
         <Loader />
       ) : (
-        <div className="w-full space-y-4">
-          <TransactionsTable
-            transactions={cachedTransactions[currentPage] || []}
-          />
-          {totalPages > 1 && (
-            <div className="my-4 w-full">
-              <Pagination
-                totalPages={totalPages}
-                page={currentPage}
-                onPageChange={handlePageChange}
+        <Tabs
+          defaultValue={currentTab}
+          className="w-full"
+          onValueChange={handleTabChange}
+        >
+          <TabsList className="recent-transactions-tablist">
+            {accounts?.map((account: Account) => (
+              <TabsTrigger key={account.id} value={account.appwriteItemId}>
+                <BankTabItem
+                  key={account.id}
+                  account={account}
+                  appwriteItemId={appwriteItemId}
+                />
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          {accounts?.map((account: Account) => (
+            <TabsContent
+              value={account.appwriteItemId}
+              key={account.id}
+              className="space-y-4"
+            >
+              <BankInfo
+                account={account}
+                appwriteItemId={appwriteItemId}
+                type="full"
               />
-            </div>
-          )}
-        </div>
+
+              <TransactionsTable transactions={currentTransactions} />
+
+              {totalPages > 1 && (
+                <div className="my-4 w-full">
+                  <Pagination
+                    totalPages={totalPages}
+                    page={currentPage}
+                    onPageChange={handlePageChange}
+                  />
+                </div>
+              )}
+            </TabsContent>
+          ))}
+        </Tabs>
       )}
     </section>
   );
