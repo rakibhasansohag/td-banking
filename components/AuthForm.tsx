@@ -75,8 +75,19 @@ const AuthForm = ({ type }: { type: string }) => {
 
         if (response) {
           toast.success("Sign In Successful");
-          router.push("/");
+          setTimeout(() => {
+            toast.warning("redirecting to home...");
+            setIsLoading(true);
+            router.push("/");
+            setIsLoading(false);
+          }, 1000);
         }
+      } else if (type === "sign-up" && user) {
+        toast.success("Sign Up Successful");
+        setTimeout(() => {
+          toast.warning("redirecting to home...");
+          router.push("/");
+        }, 2000);
       }
     } catch (error: any) {
       console.log("error signing in", error);

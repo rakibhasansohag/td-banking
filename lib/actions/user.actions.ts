@@ -152,10 +152,24 @@ export async function getLoggedInUser() {
 }
 
 export const logoutAccount = async () => {
+  // try {
+  //   const { account } = await createSessionClient();
+  //   cookies().delete("appwrite-session");
+  //   await account.deleteSession("current");
+  // } catch (error) {
+  //   console.error("Error logging out:", error);
+  //   throw new AppError(getErrorMessage(error));
+  // }
   try {
     const { account } = await createSessionClient();
 
+    // Clear session cookie
     cookies().delete("appwrite-session");
+
+    // Clear session storage
+    if (typeof window !== "undefined") {
+      sessionStorage.clear();
+    }
 
     await account.deleteSession("current");
   } catch (error) {
