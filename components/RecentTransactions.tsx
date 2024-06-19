@@ -38,7 +38,7 @@ const RecentTransactions = ({
       setTimeout(() => {
         setIsLoading(false);
         sessionStorage.setItem("dataLoaded", "true");
-      }, 1000); // Adjust the delay as needed
+      }, 500);
     } else {
       setIsLoading(false);
     }
@@ -53,7 +53,7 @@ const RecentTransactions = ({
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
-    }, 1000); // Simulate a data fetching delay for tab change
+    }, 500);
   };
 
   return (
