@@ -1,9 +1,13 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import type { BankingAccount } from "@/lib/banking";
 
-export const BankTabItem = ({ account, appwriteItemId }: BankTabItemProps) => {
-  const isActive = appwriteItemId === account?.id;
+export const BankTabItem = ({ account, selectedAccountId }: {
+  account: BankingAccount;
+  selectedAccountId?: string;
+}) => {
+  const isActive = selectedAccountId === account.id;
 
   return (
     <div

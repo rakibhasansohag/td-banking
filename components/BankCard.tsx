@@ -3,13 +3,13 @@ import Image from "next/image";
 import Link from "next/link";
 import React from "react";
 import Copy from "./Copy";
+import type { BankingAccount } from "@/lib/banking";
 
 const BankCard = ({
   account,
   userName,
   showBalance = true,
-}: CreditCardProps) => {
-  // console.log(account);
+}: { account: BankingAccount; userName: string; showBalance?: boolean }) => {
   return (
     <div className="flex flex-col">
       <Link
@@ -55,9 +55,7 @@ const BankCard = ({
         />
       </Link>
 
-      {/* Error: SHAREABLED ID PROBELM  */}
-
-      {showBalance && <Copy title={account?.shareableId as string} />}
+      {showBalance && <Copy title={account.shareableId} />}
     </div>
   );
 };

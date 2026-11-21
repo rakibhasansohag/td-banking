@@ -9,12 +9,17 @@ import {
   formatAmount,
   getAccountTypeColors,
 } from "@/lib/utils";
+import type { BankingAccount } from "@/lib/banking";
 
-const BankInfo = ({ account, appwriteItemId, type }: BankInfoProps) => {
+const BankInfo = ({ account, selectedAccountId, type }: {
+  account: BankingAccount;
+  selectedAccountId?: string;
+  type: "full" | "card";
+}) => {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const isActive = appwriteItemId === account?.id;
+  const isActive = selectedAccountId === account.id;
 
   const handleBankChange = () => {
     const newUrl = formUrlQuery({
@@ -25,7 +30,7 @@ const BankInfo = ({ account, appwriteItemId, type }: BankInfoProps) => {
     router.push(newUrl, { scroll: false });
   };
 
-  const colors = getAccountTypeColors(account?.type as AccountTypes);
+  const colors = getAccountTypeColors(account.type);
 
   return (
     <div

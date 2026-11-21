@@ -11,10 +11,6 @@ import {
 import { getLoggedInUser } from "@/lib/actions/auth.actions";
 import type { AuthUserView } from "@/lib/auth.types";
 
-export type UiAccount = BankingAccount & {
-  appwriteItemId: string;
-};
-
 export type UiTransaction = BankingActivity & {
   type: "debit" | "credit";
   pending: boolean;
@@ -24,14 +20,11 @@ export type UiTransaction = BankingActivity & {
 
 export async function getBankingPageData() {
   const user: AuthUserView | null = await getLoggedInUser();
-  if (!user) return { user: null, accounts: [] as UiAccount[] };
+  if (!user) return { user: null, accounts: [] as BankingAccount[] };
 
   const db = getDatabase();
   initializeBankingSchema(db);
-  const accounts = listBankingAccounts(db, user.$id).map((account) => ({
-    ...account,
-    appwriteItemId: account.id,
-  }));
+  const accounts = listBankingAccounts(db, user.$id);
   return { user, accounts };
 }
 

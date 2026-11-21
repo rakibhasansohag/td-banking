@@ -3,6 +3,7 @@ import BankCard from "./BankCard";
 import { countTransactionCategories } from "@/lib/utils";
 import Category from "./Category";
 import AddDemoBank from "./AddDemoBank";
+import type { BankingAccount } from "@/lib/banking";
 
 type RightSidebarUser = { email: string; firstName: string; lastName: string; name: string };
 type SidebarActivity = { name: string; amount: number; date: string; category: string };
@@ -10,7 +11,7 @@ type SidebarActivity = { name: string; amount: number; date: string; category: s
 const RightSidebar = ({ user, transactions, banks }: {
   user: RightSidebarUser;
   transactions: SidebarActivity[];
-  banks: Account[];
+  banks: BankingAccount[];
 }) => {
   const categories: CategoryCount[] = countTransactionCategories(transactions);
 

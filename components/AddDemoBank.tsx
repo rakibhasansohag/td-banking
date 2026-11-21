@@ -33,7 +33,7 @@ export default function AddDemoBank({ variant = "default" }: { variant?: "defaul
     <Button
       onClick={addAccount}
       disabled={isPending}
-      className={variant === "primary" ? "plaidlink-primary" : variant === "ghost" ? "plaidlink-ghost" : "plaidlink-default"}
+      className={variant === "primary" ? "bank-action-primary" : variant === "ghost" ? "bank-action-ghost" : "bank-action-default"}
     >
       <Image src="/icons/connect-bank.svg" alt="" width={24} height={24} />
       <span className="text-[16px] font-semibold text-black-2">

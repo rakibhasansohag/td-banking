@@ -43,7 +43,7 @@ export default async function Home({ searchParams }: PageProps) {
         <RecentTransactions
           accounts={accounts}
           transactions={activity.transactions}
-          appwriteItemId={selectedAccount?.id ?? ""}
+          selectedAccountId={selectedAccount?.id ?? ""}
           page={activity.page}
           totalPages={activity.totalPages}
         />

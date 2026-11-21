@@ -76,8 +76,6 @@ export function formatAmount(amount: number): string {
   return formatter.format(amount);
 }
 
-export const parseStringify = (value: any) => JSON.parse(JSON.stringify(value));
-
 export const removeSpecialCharacters = (value: string) => {
   return value.replace(/[^\w\s]/gi, "");
 };
@@ -102,7 +100,7 @@ export function formUrlQuery({ params, key, value }: UrlQueryParams) {
   );
 }
 
-export function getAccountTypeColors(type: AccountTypes) {
+export function getAccountTypeColors(type: string) {
   switch (type) {
     case "depository":
       return {
@@ -131,7 +129,7 @@ export function getAccountTypeColors(type: AccountTypes) {
 }
 
 export function countTransactionCategories(
-  transactions: Pick<Transaction, "category">[]
+  transactions: { category: string }[]
 ): CategoryCount[] {
   const categoryCounts: { [category: string]: number } = {};
   let totalCount = 0;
@@ -167,24 +165,6 @@ export function countTransactionCategories(
   aggregatedCategories.sort((a, b) => b.count - a.count);
 
   return aggregatedCategories;
-}
-
-export function extractCustomerIdFromUrl(url: string) {
-  // Split the URL string by '/'
-  const parts = url.split("/");
-
-  // Extract the last part, which represents the customer ID
-  const customerId = parts[parts.length - 1];
-
-  return customerId;
-}
-
-export function encryptId(id: string) {
-  return btoa(id);
-}
-
-export function decryptId(id: string) {
-  return atob(id);
 }
 
 export const getTransactionStatus = (date: Date) => {
