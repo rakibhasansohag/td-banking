@@ -41,14 +41,19 @@ const Footer = ({ user, type = "desktop" }: FooterProps) => {
       </div>
 
       <div className="relative group">
-        <div className="footer_image cursor-pointer" onClick={handleLogOut}>
+        <button
+          type="button"
+          aria-label="Log out"
+          className="footer_image cursor-pointer"
+          onClick={handleLogOut}
+        >
           <Image
             src="/icons/logout.svg"
             width={24}
             height={24}
-            alt="logout icon"
+            alt=""
           />
-        </div>
+        </button>
         <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2">
           Logout
         </div>
