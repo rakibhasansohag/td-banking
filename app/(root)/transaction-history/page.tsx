@@ -33,21 +33,12 @@ export default async function TransactionHistory({ searchParams }: PageProps) {
 
   const account = accounts.find((item) => item.id === requestedId) ?? accounts[0];
   const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
-  const firstPage = await getAccountActivityPage({
+  const activity = await getAccountActivityPage({
     ownerUserId: user.$id,
     accountId: account.id,
-    page: 1,
+    page,
     limit: 10,
   });
-  const currentPage = Math.min(page, Math.max(firstPage.totalPages, 1));
-  const activity = currentPage === 1
-    ? firstPage
-    : await getAccountActivityPage({
-        ownerUserId: user.$id,
-        accountId: account.id,
-        page: currentPage,
-        limit: 10,
-      });
 
   return (
     <div className="transactions min-w-0">

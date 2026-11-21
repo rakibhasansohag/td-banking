@@ -51,10 +51,15 @@ assert.throws(() => db.prepare("UPDATE banking_ledger_entries SET signed_cents =
 assert.throws(() => listAccountActivity(db, { ownerUserId: "recipient-user", accountId: sender.id }), (error) => error instanceof BankingError && error.code === "ACCOUNT_NOT_FOUND");
 const firstPage = listAccountActivity(db, { ownerUserId: "sender-user", accountId: sender.id, page: 1, limit: 2 });
 const secondPage = listAccountActivity(db, { ownerUserId: "sender-user", accountId: sender.id, page: 2, limit: 2 });
+const oversizedPage = listAccountActivity(db, { ownerUserId: "sender-user", accountId: sender.id, page: 1_000_001, limit: 2 });
 assert.equal(firstPage.totalPages, 2);
 assert.equal(firstPage.transactions.length, 2);
 assert.equal(secondPage.transactions.length, 2);
+assert.equal(oversizedPage.page, secondPage.page, "oversized valid pages clamp to the last available page");
+assert.deepEqual(oversizedPage.transactions.map((item) => item.id), secondPage.transactions.map((item) => item.id));
 assert.notEqual(firstPage.transactions[0].id, secondPage.transactions[0].id);
+assert.throws(() => listAccountActivity(db, { ownerUserId: "sender-user", accountId: sender.id, page: 1.5 }), (error) => error instanceof BankingError && error.code === "INVALID_PAGE");
+assert.throws(() => listAccountActivity(db, { ownerUserId: "sender-user", accountId: sender.id, page: -1 }), (error) => error instanceof BankingError && error.code === "INVALID_PAGE");
 
 db.close();
 console.log("banking core invariants passed");

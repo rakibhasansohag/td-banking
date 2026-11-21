@@ -17,12 +17,9 @@ export default async function Home({ searchParams }: PageProps) {
   const totalBalance = accounts.reduce((total, account) => total + account.currentBalance, 0);
   const selectedAccount = accounts.find((account) => account.id === requestedId) ?? accounts[0];
   const safePage = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
-  let activity = user && selectedAccount
+  const activity = user && selectedAccount
     ? await getAccountActivityPage({ ownerUserId: user.$id, accountId: selectedAccount.id, page: safePage, limit: 10 })
     : { transactions: [], page: 1, totalPages: 0 };
-  if (activity.totalPages > 0 && activity.page > activity.totalPages) {
-    activity = await getAccountActivityPage({ ownerUserId: user!.$id, accountId: selectedAccount!.id, page: activity.totalPages, limit: 10 });
-  }
 
   return (
     <section className="home min-w-0">

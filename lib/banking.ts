@@ -216,13 +216,14 @@ export function listAccountActivity(
   const limit = input.limit ?? DEFAULT_PAGE_SIZE;
   const page = input.page ?? 1;
   if (!Number.isInteger(limit) || limit < 1 || limit > MAX_PAGE_SIZE) throw new BankingError("INVALID_PAGE_SIZE", `Page size must be between 1 and ${MAX_PAGE_SIZE}.`);
-  if (!Number.isSafeInteger(page) || page < 1 || page > 1_000_000) throw new BankingError("INVALID_PAGE", "Page must be a positive integer no greater than 1,000,000.");
+  if (!Number.isSafeInteger(page) || page < 1) throw new BankingError("INVALID_PAGE", "Page must be a positive safe integer.");
   const owns = db.prepare("SELECT id FROM banking_accounts WHERE id = ? AND owner_user_id = ?").get(accountId, owner);
   if (!owns) throw new BankingError("ACCOUNT_NOT_FOUND", "Account was not found.");
   const totalRows = Number(db.prepare("SELECT COUNT(*) AS total FROM banking_ledger_entries WHERE account_id = ?").get(accountId)?.total ?? 0);
   const totalPages = Math.ceil(totalRows / limit);
+  const currentPage = Math.min(page, Math.max(totalPages, 1));
   const pageRows = db.prepare("SELECT * FROM banking_ledger_entries WHERE account_id = ? ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?")
-    .all(accountId, limit, (page - 1) * limit);
+    .all(accountId, limit, (currentPage - 1) * limit);
   const transactions = pageRows.map((row): BankingActivity => {
     const value = cents(row, "signed_cents");
     return {
@@ -232,7 +233,7 @@ export function listAccountActivity(
       transferId: row.transfer_id == null ? null : String(row.transfer_id),
     };
   });
-  return { transactions, page, totalPages };
+  return { transactions, page: currentPage, totalPages };
 }
 
 export type TransferFundsInput = {
