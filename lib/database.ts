@@ -1,5 +1,5 @@
 import { mkdirSync } from "node:fs";
-import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
+import { dirname, isAbsolute, relative, sep } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 let database: DatabaseSync | undefined;
@@ -13,14 +13,13 @@ export function getDatabase(): DatabaseSync {
     throw new Error("Production requires an absolute DATABASE_PATH on persistent storage outside the release directory.");
   }
 
-  const databasePath = configuredPath
-    ? isAbsolute(configuredPath)
-      ? configuredPath
-      : resolve(process.cwd(), configuredPath)
-    : resolve(process.cwd(), ".data", "td-banking.sqlite");
+  const databasePath = configuredPath || ".data/td-banking.sqlite";
+  if (databasePath === ":memory:") {
+    throw new Error("DATABASE_PATH must name a persistent file; :memory: databases do not persist.");
+  }
 
   if (process.env.NODE_ENV === "production") {
-    const releaseRelativePath = relative(resolve(process.cwd()), databasePath);
+    const releaseRelativePath = relative(process.cwd(), databasePath);
     if (
       releaseRelativePath === "" ||
       (!releaseRelativePath.startsWith(`..${sep}`) && releaseRelativePath !== ".." && !isAbsolute(releaseRelativePath))
@@ -29,7 +28,7 @@ export function getDatabase(): DatabaseSync {
     }
   }
 
-  mkdirSync(dirname(databasePath), { recursive: true });
+  mkdirSync(/*turbopackIgnore: true*/ dirname(databasePath), { recursive: true });
 
   const connection = new DatabaseSync(databasePath);
   connection.exec("PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;");
