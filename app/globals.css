@@ -15,6 +15,12 @@
     border-color: var(--color-gray-200, currentColor);
   }
 
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
   input::placeholder,
   textarea::placeholder {
     color: #9ca3af;
@@ -25,12 +31,6 @@
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
-}
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
 }
 
 @utility no-scrollbar {
