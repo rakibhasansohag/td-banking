@@ -17,6 +17,7 @@ type RecentTransactionsProps = {
     amount: number;
     date: string;
     type: string;
+    pending: boolean;
     paymentChannel: string;
     category: string;
   }[];

@@ -165,14 +165,6 @@ export function countTransactionCategories(
   return aggregatedCategories;
 }
 
-export const getTransactionStatus = (date: Date) => {
-  const today = new Date();
-  const twoDaysAgo = new Date(today);
-  twoDaysAgo.setDate(today.getDate() - 2);
-
-  return date > twoDaysAgo ? "Processing" : "Success";
-};
-
 export const authFormSchema = (type: string) => z.object({
   firstName: type === 'sign-in' ? z.string().optional() : z.string().trim().min(1).max(50),
   lastName: type === 'sign-in' ? z.string().optional() : z.string().trim().min(1).max(50),

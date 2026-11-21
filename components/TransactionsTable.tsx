@@ -11,7 +11,6 @@ import {
   cn,
   formatAmount,
   formatDateTime,
-  getTransactionStatus,
   removeSpecialCharacters,
 } from "@/lib/utils";
 
@@ -35,6 +34,7 @@ type TableTransaction = {
   amount: number;
   date: string;
   type: string;
+  pending: boolean;
   paymentChannel: string;
   category: string;
 };
@@ -54,7 +54,7 @@ const TransactionsTable = ({ transactions }: { transactions: TableTransaction[] 
       </TableHeader>
       <TableBody>
         {transactions?.map((t) => {
-          const status = getTransactionStatus(new Date(t.date));
+          const status = t.pending ? "Processing" : "Success";
           const amount = formatAmount(t.amount);
 
           const isDebit = t.type === "debit";
