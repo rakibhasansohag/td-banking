@@ -15,8 +15,9 @@ import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import Footer from "./Footer"
+import AddDemoBank from "./AddDemoBank"
 
-const MobileNav = ({ user }: MobileNavProps) => {
+const MobileNav = ({ user }: { user: { email: string; firstName: string; lastName: string; name: string } }) => {
   const pathname = usePathname();
 
   return (
@@ -69,7 +70,9 @@ const MobileNav = ({ user }: MobileNavProps) => {
                 )
               })}
 
-              USER
+              <div className="px-4">
+                <AddDemoBank />
+              </div>
               </nav>
             </SheetClose>
 

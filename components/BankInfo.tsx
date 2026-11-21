@@ -14,13 +14,13 @@ const BankInfo = ({ account, appwriteItemId, type }: BankInfoProps) => {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const isActive = appwriteItemId === account?.appwriteItemId;
+  const isActive = appwriteItemId === account?.id;
 
   const handleBankChange = () => {
     const newUrl = formUrlQuery({
       params: searchParams.toString(),
       key: "id",
-      value: account?.appwriteItemId,
+      value: account?.id,
     });
     router.push(newUrl, { scroll: false });
   };

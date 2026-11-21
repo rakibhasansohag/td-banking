@@ -73,7 +73,7 @@ import { formUrlQuery } from "@/lib/utils";
 interface PaginationProps {
   page: number;
   totalPages: number;
-  onPageChange: (newPage: number) => void;
+  onPageChange?: (newPage: number) => void;
 }
 
 export const Pagination = ({
@@ -95,7 +95,7 @@ export const Pagination = ({
     });
 
     router.push(newUrl, { scroll: false });
-    onPageChange(pageNumber);
+    onPageChange?.(pageNumber);
   };
 
   return (

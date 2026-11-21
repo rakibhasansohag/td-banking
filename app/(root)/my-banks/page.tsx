@@ -1,65 +1,38 @@
-"use client";
-
-import React, { useEffect, useState } from "react";
 import BankCard from "@/components/BankCard";
 import HeaderBox from "@/components/HeaderBox";
-import { getAccounts } from "@/lib/actions/bank.actions";
-import { getLoggedInUser } from "@/lib/actions/user.actions";
-import Loader from "@/components/Loader";
+import AddDemoBank from "@/components/AddDemoBank";
+import { getBankingPageData } from "@/lib/banking-data";
 
-const MyBanks = () => {
-  const [loading, setLoading] = useState<boolean>(true);
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [loggedInUser, setLoggedInUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-
-      const loggedIn = await getLoggedInUser();
-      setLoggedInUser(loggedIn);
-
-      const accountsResponse = await getAccounts({ userId: loggedIn.$id });
-      setAccounts(accountsResponse.data);
-
-      setLoading(false);
-    };
-
-    fetchData();
-  }, []);
-
-  console.log({
-    accounts,
-    loggedInUser,
-  });
-
-  if (loading) {
-    return <Loader />;
-  }
+export default async function MyBanks() {
+  const { user, accounts } = await getBankingPageData();
+  const userName = user?.name || "User";
 
   return (
-    <section className="flex">
-      <div className="my-banks">
+    <section className="flex min-w-0">
+      <div className="my-banks min-w-0">
         <HeaderBox
           title="My Bank Accounts"
-          subtext="Effortlessly manage your banking activities."
+          subtext="Manage your simulated bank accounts."
         />
 
         <div className="space-y-4">
-          <h2 className="header-2">Your cards</h2>
-          <div className="flex flex-wrap gap-6">
-            {accounts?.map((account) => (
-              <BankCard
-                key={account?.id}
-                account={account}
-                userName={loggedInUser?.firstName || "User"}
-              />
-            ))}
-          </div>
+          <h2 className="header-2">Your accounts</h2>
+          {accounts.length ? (
+            <div className="flex flex-wrap gap-6">
+              {accounts.map((account) => (
+                <BankCard key={account.id} account={account} userName={userName} />
+              ))}
+            </div>
+          ) : (
+            <div className="flex max-w-xl flex-col items-start gap-4 rounded-xl border border-gray-200 bg-white p-6">
+              <p className="text-14 text-gray-600">
+                Add a demo account to explore balances and sample activity. These accounts use simulated data.
+              </p>
+              <AddDemoBank />
+            </div>
+          )}
         </div>
       </div>
     </section>
   );
-};
-
-export default MyBanks;
+}

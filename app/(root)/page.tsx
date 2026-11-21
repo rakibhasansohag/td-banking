@@ -1,79 +1,60 @@
-import dynamic from "next/dynamic";
-import Loader from "@/components/Loader";
-import { Suspense } from "react";
+import HeaderBox from "@/components/HeaderBox";
+import RecentTransactions from "@/components/RecentTransactions";
+import RightSidebar from "@/components/RightSidebar";
+import TotalBalanceBox from "@/components/TotalBalanceBox";
+import {
+  getAccountActivityPage,
+  getBankingPageData,
+} from "@/lib/banking-data";
 
-const HeaderBox = dynamic(() => import("@/components/HeaderBox"), {
-  suspense: true,
-  loading: () => <Loader />,
-});
-const RecentTransactions = dynamic(
-  () => import("@/components/RecentTransactions"),
-  {
-    suspense: true,
-    loading: () => <Loader />,
+type PageProps = { searchParams: Promise<{ id?: string | string[]; page?: string | string[] }> };
+
+export default async function Home({ searchParams }: PageProps) {
+  const query = await searchParams;
+  const requestedId = Array.isArray(query.id) ? query.id[0] : query.id;
+  const requestedPage = Number(Array.isArray(query.page) ? query.page[0] : query.page);
+  const { user, accounts } = await getBankingPageData();
+  const totalBalance = accounts.reduce((total, account) => total + account.currentBalance, 0);
+  const selectedAccount = accounts.find((account) => account.id === requestedId) ?? accounts[0];
+  const safePage = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  let activity = user && selectedAccount
+    ? await getAccountActivityPage({ ownerUserId: user.$id, accountId: selectedAccount.id, page: safePage, limit: 10 })
+    : { transactions: [], page: 1, totalPages: 0 };
+  if (activity.totalPages > 0 && activity.page > activity.totalPages) {
+    activity = await getAccountActivityPage({ ownerUserId: user!.$id, accountId: selectedAccount!.id, page: activity.totalPages, limit: 10 });
   }
-);
-const RightSidebar = dynamic(() => import("@/components/RightSidebar"), {
-  suspense: true,
-  loading: () => <Loader />,
-});
-const TotalBalanceBox = dynamic(() => import("@/components/TotalBalanceBox"), {
-  suspense: true,
-  loading: () => <Loader />,
-});
-
-import { getAccount, getAccounts } from "@/lib/actions/bank.actions";
-import { getLoggedInUser } from "@/lib/actions/user.actions";
-
-const Home = async ({ searchParams: { id, page } }: SearchParamProps) => {
-  const currentPage = Number(page as string) || 1;
-  const loggedIn = await getLoggedInUser();
-  const accounts = await getAccounts({
-    userId: loggedIn?.$id,
-  });
-
-  if (!accounts) return;
-
-  const accountsData = accounts?.data;
-  const appwriteItemId = (id as string) || accountsData[0]?.appwriteItemId;
-
-  const account = await getAccount({ appwriteItemId });
 
   return (
-    <Suspense fallback={<Loader />}>
-      <section className="home">
-        <div className="home-content">
-          <header className="home-header">
-            <HeaderBox
-              type="greeting"
-              title="Welcome"
-              user={loggedIn?.firstName || "Guest"}
-              subtext="Access and manage your account and transactions efficiently."
-            />
-
-            <TotalBalanceBox
-              accounts={accountsData}
-              totalBanks={accounts?.totalBanks}
-              totalCurrentBalance={accounts?.totalCurrentBalance}
-            />
-          </header>
-
-          <RecentTransactions
-            accounts={accountsData}
-            transactions={account?.transactions}
-            appwriteItemId={appwriteItemId}
-            page={currentPage}
+    <section className="home min-w-0">
+      <div className="home-content min-w-0">
+        <header className="home-header">
+          <HeaderBox
+            type="greeting"
+            title="Welcome"
+            user={user?.firstName || "Guest"}
+            subtext="Manage your simulated bank accounts and sample transactions."
           />
-        </div>
-
-        <RightSidebar
-          user={loggedIn}
-          transactions={account?.transactions}
-          banks={accountsData?.slice(0, 2)}
+          <TotalBalanceBox
+            accounts={accounts}
+            totalBanks={accounts.length}
+            totalCurrentBalance={totalBalance}
+          />
+        </header>
+        <RecentTransactions
+          accounts={accounts}
+          transactions={activity.transactions}
+          appwriteItemId={selectedAccount?.id ?? ""}
+          page={activity.page}
+          totalPages={activity.totalPages}
         />
-      </section>
-    </Suspense>
+      </div>
+      {user && (
+        <RightSidebar
+          user={user}
+          transactions={activity.transactions}
+          banks={accounts}
+        />
+      )}
+    </section>
   );
-};
-
-export default Home;
+}

@@ -1,114 +1,93 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BankTabItem } from "./BankTabItem";
 import BankInfo from "./BankInfo";
 import TransactionsTable from "./TransactionsTable";
 import Pagination from "./Pagination";
-import { useState, useEffect } from "react";
-import Loader from "./Loader";
 
-const RecentTransactions = ({
+type RecentTransactionsProps = {
+  accounts: Account[];
+  transactions: {
+    id: string;
+    name: string;
+    amount: number;
+    date: string;
+    type: string;
+    paymentChannel: string;
+    category: string;
+  }[];
+  appwriteItemId: string;
+  page: number;
+  totalPages: number;
+};
+
+export default function RecentTransactions({
   accounts,
-  transactions = [],
+  transactions,
   appwriteItemId,
-  page = 1,
-}: RecentTransactionsProps) => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(page);
-  const [currentTab, setCurrentTab] = useState(appwriteItemId);
-
-  const rowsPerPage = 10;
-  const totalPages = Math.ceil(transactions.length / rowsPerPage);
-
-  const indexOfLastTransaction = currentPage * rowsPerPage;
-  const indexOfFirstTransaction = indexOfLastTransaction - rowsPerPage;
-
-  const currentTransactions = transactions.slice(
-    indexOfFirstTransaction,
-    indexOfLastTransaction
-  );
+  page,
+  totalPages,
+}: RecentTransactionsProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [currentAccountId, setCurrentAccountId] = useState(appwriteItemId);
 
   useEffect(() => {
-    // Check if data has been loaded before
-    const dataLoaded = sessionStorage.getItem("dataLoaded");
-    if (!dataLoaded) {
-      // Simulate a data fetching delay
-      setTimeout(() => {
-        setIsLoading(false);
-        sessionStorage.setItem("dataLoaded", "true");
-      }, 500);
-    } else {
-      setIsLoading(false);
-    }
-  }, []);
+    setCurrentAccountId(appwriteItemId);
+  }, [appwriteItemId]);
 
-  const handlePageChange = (newPage: number) => {
-    setCurrentPage(newPage);
-  };
-
-  const handleTabChange = (newTab: string) => {
-    setCurrentTab(newTab);
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 500);
+  const changeAccount = (accountId: string) => {
+    setCurrentAccountId(accountId);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("id", accountId);
+    params.delete("page");
+    const query = params.toString();
+    router.push(query ? `/?${query}` : "/", { scroll: false });
   };
 
   return (
-    <section className="recent-transactions">
-      <header className="flex items-center justify-between">
+    <section className="recent-transactions min-w-0">
+      <header className="flex items-center justify-between gap-3">
         <h2 className="recent-transactions-label">Recent transactions</h2>
-        <Link
-          href={`/transaction-history/?id=${appwriteItemId}`}
-          className="view-all-btn"
-        >
-          View all
-        </Link>
+        {appwriteItemId && (
+          <Link href={`/transaction-history/?id=${appwriteItemId}`} className="view-all-btn">
+            View all
+          </Link>
+        )}
       </header>
 
-      {isLoading ? (
-        <Loader />
+      {accounts.length === 0 ? (
+        <p className="mt-4 rounded-xl border border-gray-200 bg-white p-6 text-14 text-gray-600">
+          Add a simulated account to see sample balances and transactions.
+        </p>
       ) : (
-        <Tabs
-          defaultValue={currentTab}
-          className="w-full"
-          onValueChange={handleTabChange}
-        >
-          <TabsList className="recent-transactions-tablist">
-            {accounts?.map((account: Account) => (
-              <TabsTrigger key={account.id} value={account.appwriteItemId}>
-                <BankTabItem
-                  key={account.id}
-                  account={account}
-                  appwriteItemId={appwriteItemId}
-                />
+        <Tabs value={currentAccountId} onValueChange={changeAccount} className="w-full min-w-0">
+          <TabsList className="recent-transactions-tablist max-w-full overflow-x-auto">
+            {accounts.map((account) => (
+              <TabsTrigger key={account.id} value={account.id}>
+                <BankTabItem account={account} appwriteItemId={currentAccountId} />
               </TabsTrigger>
             ))}
           </TabsList>
-
-          {accounts?.map((account: Account) => (
-            <TabsContent
-              value={account.appwriteItemId}
-              key={account.id}
-              className="space-y-4"
-            >
-              <BankInfo
-                account={account}
-                appwriteItemId={appwriteItemId}
-                type="full"
-              />
-
-              <TransactionsTable transactions={currentTransactions} />
-
+          {accounts.map((account) => (
+            <TabsContent value={account.id} key={account.id} className="min-w-0 space-y-4">
+              <BankInfo account={account} appwriteItemId={currentAccountId} type="full" />
+              {transactions.length ? (
+                <div className="w-full min-w-0 overflow-x-auto">
+                  <TransactionsTable transactions={transactions} />
+                </div>
+              ) : (
+                <p className="rounded-xl border border-gray-200 bg-white p-5 text-14 text-gray-600">
+                  No activity yet for this account.
+                </p>
+              )}
               {totalPages > 1 && (
                 <div className="my-4 w-full">
-                  <Pagination
-                    totalPages={totalPages}
-                    page={currentPage}
-                    onPageChange={handlePageChange}
-                  />
+                  <Pagination totalPages={totalPages} page={page} />
                 </div>
               )}
             </TabsContent>
@@ -117,6 +96,4 @@ const RecentTransactions = ({
       )}
     </section>
   );
-};
-
-export default RecentTransactions;
+}

@@ -3,16 +3,13 @@
 import { sidebarLinks } from "@/constants";
 import { cn } from "@/lib/utils";
 
-import { Suspense } from "react";
-import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Footer from "./Footer";
-import PlaidLink from "./PlaidLink";
-import Loader from "./Loader";
+import AddDemoBank from "./AddDemoBank";
 
-const Sidebar = ({ user }: SiderbarProps) => {
+const Sidebar = ({ user }: { user: { email: string; firstName: string; lastName: string; name: string } }) => {
   const pathname = usePathname();
 
   return (
@@ -56,14 +53,10 @@ const Sidebar = ({ user }: SiderbarProps) => {
           );
         })}
 
-        <Suspense fallback={<Loader />}>
-          <PlaidLink user={user} />
-        </Suspense>
+        <AddDemoBank />
       </nav>
 
-      <Suspense fallback={<Loader />}>
-        <Footer user={user} />
-      </Suspense>
+      <Footer user={user} />
     </section>
   );
 };
