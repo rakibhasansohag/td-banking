@@ -54,8 +54,12 @@ const AuthForm = ({ type }: { type: string }) => {
       toast.success(type === "sign-in" ? "Sign In Successful" : "Sign Up Successful");
       router.replace("/");
       router.refresh();
-    } catch (error: any) {
-      toast.error(error instanceof Error ? error.message : "Authentication failed.");
+    } catch {
+      toast.error(
+        type === "sign-in"
+          ? "Check your email and password and try again."
+          : "Could not create your account. Check the details and try again."
+      );
     } finally {
       setIsLoading(false);
     }

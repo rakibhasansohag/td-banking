@@ -4,9 +4,9 @@ import {
   Sheet,
   SheetClose,
   SheetContent,
-  SheetDescription,
   SheetHeader,
   SheetTitle,
+  SheetDescription,
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { sidebarLinks } from "@/constants"
@@ -33,6 +33,10 @@ const MobileNav = ({ user }: { user: { email: string; firstName: string; lastNam
           />
         </SheetTrigger>
         <SheetContent side="left" className="border-none bg-white">
+          <SheetHeader className="sr-only">
+            <SheetTitle>Navigation menu</SheetTitle>
+            <SheetDescription>Navigate to account pages and banking tools.</SheetDescription>
+          </SheetHeader>
           <Link href="/" className="cursor-pointer flex items-center gap-1 px-4">
             <Image 
               src="/icons/logo.svg"

@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BankTabItem } from "./BankTabItem";
 import BankInfo from "./BankInfo";
@@ -35,14 +34,7 @@ export default function RecentTransactions({
 }: RecentTransactionsProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [currentAccountId, setCurrentAccountId] = useState(selectedAccountId);
-
-  useEffect(() => {
-    setCurrentAccountId(selectedAccountId);
-  }, [selectedAccountId]);
-
   const changeAccount = (accountId: string) => {
-    setCurrentAccountId(accountId);
     const params = new URLSearchParams(searchParams.toString());
     params.set("id", accountId);
     params.delete("page");
@@ -66,17 +58,17 @@ export default function RecentTransactions({
           Add a simulated account to see sample balances and transactions.
         </p>
       ) : (
-        <Tabs value={currentAccountId} onValueChange={changeAccount} className="w-full min-w-0">
+        <Tabs value={selectedAccountId} onValueChange={changeAccount} className="w-full min-w-0">
           <TabsList className="recent-transactions-tablist max-w-full overflow-x-auto">
             {accounts.map((account) => (
               <TabsTrigger key={account.id} value={account.id}>
-                <BankTabItem account={account} selectedAccountId={currentAccountId} />
+                <BankTabItem account={account} selectedAccountId={selectedAccountId} />
               </TabsTrigger>
             ))}
           </TabsList>
           {accounts.map((account) => (
             <TabsContent value={account.id} key={account.id} className="min-w-0 space-y-4">
-              <BankInfo account={account} selectedAccountId={currentAccountId} type="full" />
+              <BankInfo account={account} selectedAccountId={selectedAccountId} type="full" />
               {transactions.length ? (
                 <div className="w-full min-w-0 overflow-x-auto">
                   <TransactionsTable transactions={transactions} />

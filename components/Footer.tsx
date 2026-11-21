@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 interface FooterProps {
   user: {
-    firstName: any;
+    firstName: string;
     name: string;
     email: string;
   };

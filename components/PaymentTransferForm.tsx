@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import type { FormEventHandler } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
@@ -90,9 +91,13 @@ const PaymentTransferForm = ({ accounts }: { accounts: BankingAccount[] }) => {
     }
   };
 
+  const handleFormSubmit: FormEventHandler<HTMLFormElement> = (event) => {
+    void form.handleSubmit(submit)(event);
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(submit)} className="flex flex-col" aria-busy={isLoading}>
+      <form onSubmit={handleFormSubmit} className="flex flex-col" aria-busy={isLoading}>
         <FormField
           control={form.control}
           name="senderBank"
