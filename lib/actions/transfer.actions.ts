@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { BankingError, initializeBankingSchema, transferFunds } from "@/lib/banking";
+import { BankingError, transferFunds } from "@/lib/banking";
 import { getDatabase } from "@/lib/database";
 import { getLoggedInUser } from "@/lib/actions/auth.actions";
 
@@ -51,8 +51,7 @@ export async function submitBankingTransfer(input: unknown): Promise<TransferAct
     if (!user) return { ok: false, message: "Sign in before sending a transfer." };
 
     const db = getDatabase();
-    initializeBankingSchema(db);
-    transferFunds(db, {
+    await transferFunds(db, {
       ownerUserId: user.$id,
       sourceAccountId: parsed.data.sourceAccountId,
       recipientCode: parsed.data.recipientCode,

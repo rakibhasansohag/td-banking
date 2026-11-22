@@ -1,39 +1,52 @@
 # TD Banking
 
-TD Banking is a self-hosted simulated banking demo. It stores fictional accounts, balances, and transfers in SQLite. It does not connect to a real bank or move real money, and it does not require a banking or other service subscription. Hosting costs depend on where you run it.
+TD Banking is a self-hosted simulated banking demo. It stores fictional accounts, balances, and transfers in PostgreSQL. It does not connect to a real bank or move real money.
 
 ## Requirements
 
 - Node.js 24 LTS
 - npm
+- PostgreSQL
 
 ## Local setup
 
-Install dependencies:
+Install dependencies and copy the example environment file:
 
 ```sh
 npm ci
-```
-
-Create `.env.local` from the example file, then set these values:
-
-```sh
 cp .env.example .env.local
 ```
+
+Set the local app and database values in `.env.local`:
 
 ```dotenv
 BETTER_AUTH_URL=http://localhost:3000
 BETTER_AUTH_SECRET=<unique random secret>
-DATABASE_PATH=.data/td-banking.sqlite
+DATABASE_URL=postgresql://td_banking:password@localhost:5432/td_banking
+MIGRATION_DATABASE_URL=postgresql://td_banking_migrator:password@localhost:5432/td_banking
 ```
 
-Generate a 32-byte secret with Node.js, then use the printed value for `BETTER_AUTH_SECRET`:
+`DATABASE_URL` is used by the running app. `MIGRATION_DATABASE_URL` is required by the migration command and should connect to the same database with permission to create or update tables. Generate a secret with Node.js and use the printed value for `BETTER_AUTH_SECRET`:
 
 ```sh
 node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
 ```
 
-The local database directory is created automatically. Keep the auth secret private and do not commit it.
+If your PostgreSQL service requires TLS, set the relevant PEM values in the environment. These variables accept PEM contents, including literal newlines or `\n` escapes:
+
+```dotenv
+DATABASE_CA_CERT=
+DATABASE_CLIENT_CERT=
+DATABASE_CLIENT_KEY=
+```
+
+Keep database credentials, TLS private keys, and the auth secret private. Do not commit them.
+
+Create the local database and role used by the connection strings. Run the migrations before starting the app. The command applies Better Auth migrations first, then the banking schema migration:
+
+```sh
+npm run db:migrate
+```
 
 Start the development server:
 
@@ -43,37 +56,31 @@ npm run dev
 
 Open <http://localhost:3000>.
 
-## Production run
-
-Use a persistent host with Node.js 24 LTS. Configure `BETTER_AUTH_URL` with the app's HTTPS origin, set a unique `BETTER_AUTH_SECRET`, and set `DATABASE_PATH` to an absolute path on persistent storage **outside the release directory**. Ensure the app user can read and write that path.
-
-Install, build, and start the app with:
+For tests, set `TEST_DATABASE_URL` to an isolated, disposable PostgreSQL database on the local machine. Tests reject non-loopback hosts and may create or modify the database schema and data. Never point it at production or a persistent development database. Runtime and migration commands do not use `TEST_DATABASE_URL`.
 
 ```sh
-npm ci
-npm run build
-npm start
+TEST_DATABASE_URL=postgresql://td_banking_test:password@localhost:5432/td_banking_test npm test
 ```
 
-For each release, point the new app version at the same persistent database path. Stop the app briefly during the release switch, then start the new version. Do not create a fresh database path for each release; that would make existing accounts and balances appear missing.
+## Production deployment
 
-## SQLite backups and restore
+Deploy the complete Next.js application to Vercel or Dokploy and connect it to a persistent PostgreSQL database. Set `BETTER_AUTH_URL` to the app's canonical HTTPS origin and configure `BETTER_AUTH_SECRET`, `DATABASE_URL`, and `MIGRATION_DATABASE_URL` as deployment secrets. Add the TLS PEM environment values if the database requires them. Do not use `TEST_DATABASE_URL` in production.
 
-Back up the database regularly. Use SQLite's online backup API or the `sqlite3` backup command, for example:
+Run the migration command once against the production database before the new app version receives traffic:
 
 ```sh
-sqlite3 "$DATABASE_PATH" ".backup '/secure/backups/td-banking-backup.sqlite'"
+npm run db:migrate
 ```
 
-Do not make a live backup by copying only the database file; SQLite may have recent writes in its journal or WAL. Check a copy of the backup with SQLite's integrity check:
+The migration process uses a database advisory lock, so concurrent invocations serialize. Keep the runtime database URL available to the app after the migration succeeds.
 
-```sh
-sqlite3 /secure/backups/td-banking-backup.sqlite "PRAGMA integrity_check;"
-```
+### Vercel
 
-The expected output is `ok`. Test that backups can be opened and restored.
+Deploy the whole Next.js app to Vercel. Use a PostgreSQL service reachable from the app's server runtime, preferably in the same region. Set the production environment variables in Vercel, then run the migration command from a release job or another controlled Node.js 24 environment with the production migration URL before promoting the release. Include preview database URLs only when preview deployments should have their own isolated data.
 
-To restore, briefly stop the app first. Save a separate copy of the current database so writes made since the selected backup are preserved, then restore the chosen backup to the configured path and restart the app. Never overwrite the only copy of the current database.
+### Dokploy
+
+Deploy the Next.js app and a PostgreSQL service in Dokploy. Keep PostgreSQL data on a persistent volume and use the database's internal service hostname in the app's `DATABASE_URL` and `MIGRATION_DATABASE_URL`. Run the migration command as a pre-deploy or release step before switching traffic to the new app version.
 
 ## Checks
 

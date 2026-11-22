@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import AddDemoBank from "@/components/AddDemoBank";
 import HeaderBox from "@/components/HeaderBox";
 import PaymentTransferForm from "@/components/PaymentTransferForm";
-import { initializeBankingSchema, listBankingAccounts } from "@/lib/banking";
+import { listBankingAccounts } from "@/lib/banking";
 import { getLoggedInUser } from "@/lib/actions/auth.actions";
 import { getDatabase } from "@/lib/database";
 
@@ -12,8 +12,7 @@ export default async function Transfer() {
   if (!user) redirect("/sign-in");
 
   const db = getDatabase();
-  initializeBankingSchema(db);
-  const accounts = listBankingAccounts(db, user.$id);
+  const accounts = await listBankingAccounts(db, user.$id);
 
   return (
     <section className="payment-transfer flex flex-col items-center">

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getDatabase } from "@/lib/database";
-import { createBankingAccount, initializeBankingSchema } from "@/lib/banking";
+import { createBankingAccount } from "@/lib/banking";
 import { getLoggedInUser } from "@/lib/actions/auth.actions";
 
 export async function addDemoBankAccount(accountIdempotencyKey: string) {
@@ -13,8 +13,7 @@ export async function addDemoBankAccount(accountIdempotencyKey: string) {
   if (!user) throw new Error("Sign in to add a demo bank account.");
 
   const db = getDatabase();
-  initializeBankingSchema(db);
-  const account = createBankingAccount(db, {
+  const account = await createBankingAccount(db, {
     ownerUserId: user.$id,
     accountIdempotencyKey,
   });

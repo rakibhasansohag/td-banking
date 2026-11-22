@@ -2,7 +2,6 @@ import "server-only";
 
 import { getDatabase } from "@/lib/database";
 import {
-  initializeBankingSchema,
   listAccountActivity,
   listBankingAccounts,
   type BankingAccount,
@@ -23,8 +22,7 @@ export async function getBankingPageData() {
   if (!user) return { user: null, accounts: [] as BankingAccount[] };
 
   const db = getDatabase();
-  initializeBankingSchema(db);
-  const accounts = listBankingAccounts(db, user.$id);
+  const accounts = await listBankingAccounts(db, user.$id);
   return { user, accounts };
 }
 
@@ -40,8 +38,7 @@ export async function getAccountActivityPage({
   limit?: number;
 }) {
   const db = getDatabase();
-  initializeBankingSchema(db);
-  const result = listAccountActivity(db, { ownerUserId, accountId, page, limit });
+  const result = await listAccountActivity(db, { ownerUserId, accountId, page, limit });
   return {
     ...result,
     transactions: result.transactions.map((transaction) => ({
