@@ -1,0 +1,44 @@
+services:
+  pgbouncer:
+    image: ghcr.io/icoretech/pgbouncer-docker:1.26.1@sha256:1b24dd6759158d0349ddb1d1112c0800535dca5b90ba53f8d5a63a3da97d1a3b
+    restart: unless-stopped
+    ports:
+      - "${PGBOUNCER_BIND_IP:-127.0.0.1}:6432:6432"
+    networks:
+      - dokploy-network
+    volumes:
+      - ./pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+    secrets:
+      - gateway-cert
+      - gateway-key
+      - client-ca
+      - upstream-ca
+      - userlist
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+secrets:
+  gateway-cert:
+    file: ./secrets/gateway.crt
+  gateway-key:
+    file: ./secrets/gateway.key
+  client-ca:
+    file: ./secrets/client-ca.crt
+  upstream-ca:
+    file: ./secrets/upstream-ca.crt
+  userlist:
+    file: ./secrets/userlist.txt
+
+networks:
+  dokploy-network:
+    name: dokploy-network
+    external: true
