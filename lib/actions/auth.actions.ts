@@ -2,7 +2,7 @@
 
 import { headers } from "next/headers";
 import { z } from "zod";
-import { ensureAuthSchema, getAuth } from "../auth";
+import { getAuth } from "../auth";
 import { checkAuthRateLimit } from "../auth-rate-limit";
 import type { AuthUserView } from "../auth.types";
 
@@ -35,7 +35,6 @@ export async function signUp(input: { email: string; password: string; name: str
   if (!parsed.success) throw new Error("Enter a valid name, email, and password of at least 8 characters.");
 
   checkAuthRateLimit("sign-up", parsed.data.email);
-  await ensureAuthSchema();
   const result = await getAuth().api.signUpEmail({
     body: {
       email: parsed.data.email.toLowerCase(),
@@ -53,7 +52,6 @@ export async function signIn(input: { email: string; password: string }) {
   if (!parsed.success) throw new Error("Enter a valid email and password.");
 
   checkAuthRateLimit("sign-in", parsed.data.email);
-  await ensureAuthSchema();
   const result = await getAuth().api.signInEmail({
     body: {
       email: parsed.data.email.toLowerCase(),
@@ -66,13 +64,11 @@ export async function signIn(input: { email: string; password: string }) {
 }
 
 export async function getLoggedInUser(): Promise<AuthUserView | null> {
-  await ensureAuthSchema();
   const session = await getAuth().api.getSession({ headers: await headers() });
   return session?.user ? toUserView(session.user) : null;
 }
 
 export async function logoutAccount(): Promise<boolean> {
-  await ensureAuthSchema();
   await getAuth().api.signOut({ headers: await headers() });
   return true;
 }
