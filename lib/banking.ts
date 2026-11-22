@@ -1,12 +1,15 @@
 import { randomBytes, randomInt, randomUUID } from "node:crypto";
-import type { DatabaseSync } from "node:sqlite";
+import type { Pool, PoolClient } from "pg";
 
-export type BankingDatabase = DatabaseSync;
+export type BankingDatabase = Pool;
 
 const SCHEMA_VERSION = 1;
 const MAX_CENTS = 99_999_999_999;
 const DEFAULT_PAGE_SIZE = 10;
 const MAX_PAGE_SIZE = 100;
+const SCHEMA_LOCK_KEY = "td-banking-schema-migration";
+
+type DbRow = { [column: string]: unknown };
 
 export class BankingError extends Error {
   public readonly code: string;
@@ -51,19 +54,25 @@ function assertText(value: string, label: string, max = 200): string {
   return value.trim();
 }
 
-function assertAmount(cents: number, allowZero = false): void {
-  if (!Number.isSafeInteger(cents) || cents < (allowZero ? 0 : 1) || cents > MAX_CENTS) {
+function assertAmount(value: number, allowZero = false): void {
+  if (!Number.isSafeInteger(value) || value < (allowZero ? 0 : 1) || value > MAX_CENTS) {
     throw new BankingError("INVALID_AMOUNT", "Amount must be a positive, supported whole number of cents.");
   }
 }
 
-function cents(row: Record<string, unknown>, key: string): number {
+function cents(row: DbRow, key: string): number {
   const value = Number(row[key]);
   if (!Number.isSafeInteger(value)) throw new BankingError("DATA_INTEGRITY", `Invalid ${key} stored in banking database.`);
   return value;
 }
 
-function accountShape(row: Record<string, unknown>): BankingAccount {
+function timestamp(value: unknown): string {
+  const date = value instanceof Date ? value : new Date(String(value));
+  if (Number.isNaN(date.getTime())) throw new BankingError("DATA_INTEGRITY", "Invalid timestamp stored in banking database.");
+  return date.toISOString();
+}
+
+function accountShape(row: DbRow): BankingAccount {
   const balance = cents(row, "balance_cents") / 100;
   return {
     id: String(row.id), availableBalance: balance, currentBalance: balance,
@@ -72,80 +81,106 @@ function accountShape(row: Record<string, unknown>): BankingAccount {
   };
 }
 
-/** Creates an app-owned schema without changing SQLite's shared PRAGMA user_version. */
-export function initializeBankingSchema(db: BankingDatabase): void {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS banking_schema_migrations (
-      version INTEGER PRIMARY KEY,
-      applied_at TEXT NOT NULL
-    );
-  `);
-  db.exec("BEGIN IMMEDIATE");
+async function lockIdempotency(client: PoolClient, scope: string, key: string): Promise<void> {
+  // A transaction-level advisory lock serializes concurrent retries for this owner/key pair.
+  await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1, 0))", [JSON.stringify([scope, key])]);
+}
+
+async function inTransaction<T>(pool: Pool, work: (client: PoolClient) => Promise<T>): Promise<T> {
+  const client = await pool.connect();
   try {
-    // Check again under the write lock so concurrent startup callers are safe.
-    const applied = db.prepare("SELECT version FROM banking_schema_migrations WHERE version = ?").get(SCHEMA_VERSION);
-    if (applied) {
-      db.exec("COMMIT");
-      return;
-    }
-    db.exec(`
-    CREATE TABLE IF NOT EXISTS banking_accounts (
-      id TEXT PRIMARY KEY,
-      owner_user_id TEXT NOT NULL,
-      name TEXT NOT NULL,
-      official_name TEXT NOT NULL,
-      type TEXT NOT NULL,
-      subtype TEXT NOT NULL,
-      mask TEXT NOT NULL,
-      share_code TEXT NOT NULL UNIQUE,
-      balance_cents INTEGER NOT NULL DEFAULT 0 CHECK(balance_cents >= 0),
-      created_at TEXT NOT NULL
-    );
-    CREATE INDEX IF NOT EXISTS banking_accounts_owner_idx ON banking_accounts(owner_user_id, created_at, id);
-    CREATE TABLE IF NOT EXISTS banking_ledger_entries (
-      id TEXT PRIMARY KEY,
-      account_id TEXT NOT NULL REFERENCES banking_accounts(id),
-      signed_cents INTEGER NOT NULL,
-      description TEXT NOT NULL,
-      category TEXT NOT NULL,
-      payment_channel TEXT NOT NULL,
-      transfer_id TEXT,
-      created_at TEXT NOT NULL
-    );
-    CREATE INDEX IF NOT EXISTS banking_ledger_account_idx ON banking_ledger_entries(account_id, created_at DESC, id DESC);
-    CREATE INDEX IF NOT EXISTS banking_ledger_transfer_idx ON banking_ledger_entries(transfer_id);
-    CREATE TABLE IF NOT EXISTS banking_account_requests (
-      owner_user_id TEXT NOT NULL,
-      idempotency_key TEXT NOT NULL,
-      request_fingerprint TEXT NOT NULL,
-      account_id TEXT NOT NULL REFERENCES banking_accounts(id),
-      PRIMARY KEY(owner_user_id, idempotency_key)
-    );
-    CREATE TABLE IF NOT EXISTS banking_transfers (
-      id TEXT PRIMARY KEY,
-      source_account_id TEXT NOT NULL REFERENCES banking_accounts(id),
-      destination_account_id TEXT NOT NULL REFERENCES banking_accounts(id),
-      amount_cents INTEGER NOT NULL CHECK(amount_cents > 0),
-      created_at TEXT NOT NULL
-    );
-    CREATE TABLE IF NOT EXISTS banking_transfer_requests (
-      owner_user_id TEXT NOT NULL,
-      idempotency_key TEXT NOT NULL,
-      request_fingerprint TEXT NOT NULL,
-      transfer_id TEXT NOT NULL REFERENCES banking_transfers(id),
-      PRIMARY KEY(owner_user_id, idempotency_key)
-    );
-    CREATE TRIGGER IF NOT EXISTS banking_ledger_no_update
-      BEFORE UPDATE ON banking_ledger_entries BEGIN SELECT RAISE(ABORT, 'ledger entries are immutable'); END;
-    CREATE TRIGGER IF NOT EXISTS banking_ledger_no_delete
-      BEFORE DELETE ON banking_ledger_entries BEGIN SELECT RAISE(ABORT, 'ledger entries are immutable'); END;
-    INSERT INTO banking_schema_migrations(version, applied_at) VALUES (${SCHEMA_VERSION}, '${new Date().toISOString()}');
-  `);
-    db.exec("COMMIT");
+    await client.query("BEGIN");
+    const result = await work(client);
+    await client.query("COMMIT");
+    return result;
   } catch (error) {
-    try { db.exec("ROLLBACK"); } catch { /* transaction may already be closed */ }
+    try { await client.query("ROLLBACK"); } catch { /* preserve the original error */ }
     throw error;
+  } finally {
+    client.release();
   }
+}
+
+/** Applies the app-owned schema after Better Auth has created its `user` table. */
+export async function initializeBankingSchema(pool: Pool): Promise<void> {
+  await inTransaction(pool, async (client) => {
+    await lockIdempotency(client, SCHEMA_LOCK_KEY, "v1");
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS banking_schema_migrations (
+        version INTEGER PRIMARY KEY,
+        applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )
+    `);
+    const applied = await client.query<DbRow>("SELECT version FROM banking_schema_migrations WHERE version = $1", [SCHEMA_VERSION]);
+    if (applied.rowCount) return;
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS banking_accounts (
+        id TEXT PRIMARY KEY,
+        owner_user_id TEXT NOT NULL REFERENCES "user"(id),
+        name TEXT NOT NULL,
+        official_name TEXT NOT NULL,
+        type TEXT NOT NULL,
+        subtype TEXT NOT NULL,
+        mask TEXT NOT NULL,
+        share_code TEXT NOT NULL UNIQUE,
+        balance_cents BIGINT NOT NULL DEFAULT 0 CHECK(balance_cents BETWEEN 0 AND ${MAX_CENTS}),
+        created_at TIMESTAMPTZ NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS banking_accounts_owner_idx ON banking_accounts(owner_user_id, created_at, id);
+
+      CREATE TABLE IF NOT EXISTS banking_transfers (
+        id TEXT PRIMARY KEY,
+        source_account_id TEXT NOT NULL REFERENCES banking_accounts(id),
+        destination_account_id TEXT NOT NULL REFERENCES banking_accounts(id),
+        amount_cents BIGINT NOT NULL CHECK(amount_cents > 0 AND amount_cents <= ${MAX_CENTS}),
+        created_at TIMESTAMPTZ NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS banking_ledger_entries (
+        id TEXT PRIMARY KEY,
+        account_id TEXT NOT NULL REFERENCES banking_accounts(id),
+        signed_cents BIGINT NOT NULL,
+        description TEXT NOT NULL,
+        category TEXT NOT NULL,
+        payment_channel TEXT NOT NULL,
+        transfer_id TEXT REFERENCES banking_transfers(id),
+        created_at TIMESTAMPTZ NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS banking_ledger_account_idx ON banking_ledger_entries(account_id, created_at DESC, id DESC);
+      CREATE INDEX IF NOT EXISTS banking_ledger_transfer_idx ON banking_ledger_entries(transfer_id);
+
+      CREATE TABLE IF NOT EXISTS banking_account_requests (
+        owner_user_id TEXT NOT NULL REFERENCES "user"(id),
+        idempotency_key TEXT NOT NULL,
+        request_fingerprint TEXT NOT NULL,
+        account_id TEXT NOT NULL REFERENCES banking_accounts(id),
+        PRIMARY KEY(owner_user_id, idempotency_key)
+      );
+
+      CREATE TABLE IF NOT EXISTS banking_transfer_requests (
+        owner_user_id TEXT NOT NULL REFERENCES "user"(id),
+        idempotency_key TEXT NOT NULL,
+        request_fingerprint TEXT NOT NULL,
+        transfer_id TEXT NOT NULL REFERENCES banking_transfers(id),
+        PRIMARY KEY(owner_user_id, idempotency_key)
+      );
+
+      CREATE OR REPLACE FUNCTION banking_reject_ledger_mutation() RETURNS trigger
+      LANGUAGE plpgsql AS $$
+      BEGIN
+        RAISE EXCEPTION 'ledger entries are immutable';
+      END;
+      $$;
+      DROP TRIGGER IF EXISTS banking_ledger_no_update ON banking_ledger_entries;
+      CREATE TRIGGER banking_ledger_no_update BEFORE UPDATE ON banking_ledger_entries
+        FOR EACH ROW EXECUTE FUNCTION banking_reject_ledger_mutation();
+      DROP TRIGGER IF EXISTS banking_ledger_no_delete ON banking_ledger_entries;
+      CREATE TRIGGER banking_ledger_no_delete BEFORE DELETE ON banking_ledger_entries
+        FOR EACH ROW EXECUTE FUNCTION banking_reject_ledger_mutation();
+    `);
+    await client.query("INSERT INTO banking_schema_migrations(version) VALUES ($1)", [SCHEMA_VERSION]);
+  });
 }
 
 export type CreateBankingAccountInput = {
@@ -157,8 +192,8 @@ export type CreateBankingAccountInput = {
   openingBalanceCents?: number;
 };
 
-/** Creates an account with a net-zero set of fictional activity rows. Retries replay by scoped key. */
-export function createBankingAccount(db: BankingDatabase, input: CreateBankingAccountInput): BankingAccount {
+/** Creates an account with fictional net-zero activity. Retries replay by scoped key. */
+export async function createBankingAccount(pool: Pool, input: CreateBankingAccountInput): Promise<BankingAccount> {
   const owner = assertText(input.ownerUserId, "Owner user ID");
   const key = assertText(input.accountIdempotencyKey, "Account idempotency key");
   const name = assertText(input.name ?? "TD Everyday Checking", "Account name", 80);
@@ -168,67 +203,68 @@ export function createBankingAccount(db: BankingDatabase, input: CreateBankingAc
   assertAmount(opening, true);
   const fingerprint = JSON.stringify([name, type, subtype, opening]);
 
-  db.exec("BEGIN IMMEDIATE");
-  try {
-    const prior = db.prepare(`SELECT r.request_fingerprint, a.* FROM banking_account_requests r
-      JOIN banking_accounts a ON a.id = r.account_id WHERE r.owner_user_id = ? AND r.idempotency_key = ?`).get(owner, key);
-    if (prior) {
-      if (prior.request_fingerprint !== fingerprint) throw new BankingError("IDEMPOTENCY_CONFLICT", "Account creation key was already used with different details.");
-      db.exec("COMMIT");
-      return accountShape(prior);
+  return inTransaction(pool, async (client) => {
+    await lockIdempotency(client, owner, `account:${key}`);
+    const prior = await client.query<DbRow>(`SELECT r.request_fingerprint, a.*
+      FROM banking_account_requests r JOIN banking_accounts a ON a.id = r.account_id
+      WHERE r.owner_user_id = $1 AND r.idempotency_key = $2`, [owner, key]);
+    if (prior.rows[0]) {
+      if (prior.rows[0].request_fingerprint !== fingerprint) throw new BankingError("IDEMPOTENCY_CONFLICT", "Account creation key was already used with different details.");
+      return accountShape(prior.rows[0]);
     }
 
     const id = randomUUID();
     const shareCode = randomBytes(18).toString("base64url");
     const now = new Date().toISOString();
-    db.prepare(`INSERT INTO banking_accounts(id, owner_user_id, name, official_name, type, subtype, mask, share_code, balance_cents, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(id, owner, name, name, type, subtype, String(randomInt(0, 10_000)).padStart(4, "0"), shareCode, opening, now);
-    const entry = db.prepare(`INSERT INTO banking_ledger_entries(id, account_id, signed_cents, description, category, payment_channel, transfer_id, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, NULL, ?)`);
-    entry.run(randomUUID(), id, opening, "Opening balance", "Deposit", "other", now);
-    // A small, balanced fictional pair gives the demo account believable history without changing its balance.
+    const account = await client.query<DbRow>(`INSERT INTO banking_accounts
+      (id, owner_user_id, name, official_name, type, subtype, mask, share_code, balance_cents, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+    [id, owner, name, name, type, subtype, String(randomInt(0, 10_000)).padStart(4, "0"), shareCode, opening, now]);
+    const entry = `INSERT INTO banking_ledger_entries
+      (id, account_id, signed_cents, description, category, payment_channel, transfer_id, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6, NULL, $7)`;
+    await client.query(entry, [randomUUID(), id, opening, "Opening balance", "Deposit", "other", now]);
     const sample = Math.min(2_450, opening || 2_450);
-    entry.run(randomUUID(), id, sample, "Sample cash deposit", "Deposit", "in store", new Date(Date.now() - 172_800_000).toISOString());
-    entry.run(randomUUID(), id, -sample, "Sample grocery purchase", "Shopping", "in store", new Date(Date.now() - 86_400_000).toISOString());
-    db.prepare(`INSERT INTO banking_account_requests(owner_user_id, idempotency_key, request_fingerprint, account_id) VALUES (?, ?, ?, ?)`)
-      .run(owner, key, fingerprint, id);
-    const row = db.prepare("SELECT * FROM banking_accounts WHERE id = ?").get(id);
-    db.exec("COMMIT");
-    if (!row) throw new BankingError("DATA_INTEGRITY", "Created account could not be read back.");
-    return accountShape(row);
-  } catch (error) {
-    try { db.exec("ROLLBACK"); } catch { /* transaction may already be closed */ }
-    throw error;
-  }
+    await client.query(entry, [randomUUID(), id, sample, "Sample cash deposit", "Deposit", "in store", new Date(Date.now() - 172_800_000).toISOString()]);
+    await client.query(entry, [randomUUID(), id, -sample, "Sample grocery purchase", "Shopping", "in store", new Date(Date.now() - 86_400_000).toISOString()]);
+    await client.query(`INSERT INTO banking_account_requests(owner_user_id, idempotency_key, request_fingerprint, account_id)
+      VALUES ($1, $2, $3, $4)`, [owner, key, fingerprint, id]);
+    if (!account.rows[0]) throw new BankingError("DATA_INTEGRITY", "Created account could not be read back.");
+    return accountShape(account.rows[0]);
+  });
 }
 
-export function listBankingAccounts(db: BankingDatabase, ownerUserId: string): BankingAccount[] {
+export async function listBankingAccounts(pool: Pool, ownerUserId: string): Promise<BankingAccount[]> {
   const owner = assertText(ownerUserId, "Owner user ID");
-  return db.prepare("SELECT * FROM banking_accounts WHERE owner_user_id = ? ORDER BY created_at, id").all(owner).map(accountShape);
+  const result = await pool.query<DbRow>("SELECT * FROM banking_accounts WHERE owner_user_id = $1 ORDER BY created_at, id", [owner]);
+  return result.rows.map(accountShape);
 }
 
-export function listAccountActivity(
-  db: BankingDatabase,
+export async function listAccountActivity(
+  pool: Pool,
   input: { ownerUserId: string; accountId: string; page?: number; limit?: number },
-): ActivityPage {
+): Promise<ActivityPage> {
   const owner = assertText(input.ownerUserId, "Owner user ID");
   const accountId = assertText(input.accountId, "Account ID");
   const limit = input.limit ?? DEFAULT_PAGE_SIZE;
   const page = input.page ?? 1;
   if (!Number.isInteger(limit) || limit < 1 || limit > MAX_PAGE_SIZE) throw new BankingError("INVALID_PAGE_SIZE", `Page size must be between 1 and ${MAX_PAGE_SIZE}.`);
   if (!Number.isSafeInteger(page) || page < 1) throw new BankingError("INVALID_PAGE", "Page must be a positive safe integer.");
-  const owns = db.prepare("SELECT id FROM banking_accounts WHERE id = ? AND owner_user_id = ?").get(accountId, owner);
-  if (!owns) throw new BankingError("ACCOUNT_NOT_FOUND", "Account was not found.");
-  const totalRows = Number(db.prepare("SELECT COUNT(*) AS total FROM banking_ledger_entries WHERE account_id = ?").get(accountId)?.total ?? 0);
+  const owns = await pool.query("SELECT id FROM banking_accounts WHERE id = $1 AND owner_user_id = $2", [accountId, owner]);
+  if (!owns.rowCount) throw new BankingError("ACCOUNT_NOT_FOUND", "Account was not found.");
+  const countResult = await pool.query<DbRow>("SELECT COUNT(*)::text AS total FROM banking_ledger_entries WHERE account_id = $1", [accountId]);
+  const totalRows = Number(countResult.rows[0]?.total ?? 0);
+  if (!Number.isSafeInteger(totalRows)) throw new BankingError("DATA_INTEGRITY", "Activity count exceeds supported range.");
   const totalPages = Math.ceil(totalRows / limit);
   const currentPage = Math.min(page, Math.max(totalPages, 1));
-  const pageRows = db.prepare("SELECT * FROM banking_ledger_entries WHERE account_id = ? ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?")
-    .all(accountId, limit, (currentPage - 1) * limit);
-  const transactions = pageRows.map((row): BankingActivity => {
+  const offset = (currentPage - 1) * limit;
+  const result = await pool.query<DbRow>(`SELECT * FROM banking_ledger_entries
+    WHERE account_id = $1 ORDER BY created_at DESC, id DESC LIMIT $2 OFFSET $3`, [accountId, limit, offset]);
+  const transactions = result.rows.map((row): BankingActivity => {
     const value = cents(row, "signed_cents");
     return {
       id: String(row.id), name: String(row.description), amount: Math.abs(value) / 100,
-      direction: value < 0 ? "debit" : "credit", date: String(row.created_at),
+      direction: value < 0 ? "debit" : "credit", date: timestamp(row.created_at),
       paymentChannel: String(row.payment_channel), category: String(row.category),
       transferId: row.transfer_id == null ? null : String(row.transfer_id),
     };
@@ -246,8 +282,8 @@ export type TransferFundsInput = {
   note?: string;
 };
 
-/** Executes one atomic, balanced transfer. Recipient email is checked against the Better Auth user table. */
-export function transferFunds(db: BankingDatabase, input: TransferFundsInput): { transferId: string; replayed: boolean } {
+/** Executes one atomic, balanced transfer. Recipient email is checked against Better Auth's user table. */
+export async function transferFunds(pool: Pool, input: TransferFundsInput): Promise<{ transferId: string; replayed: boolean }> {
   const owner = assertText(input.ownerUserId, "Owner user ID");
   const sourceId = assertText(input.sourceAccountId, "Source account ID");
   const code = assertText(input.recipientCode, "Recipient code", 100);
@@ -257,41 +293,55 @@ export function transferFunds(db: BankingDatabase, input: TransferFundsInput): {
   assertAmount(input.amountCents);
   const fingerprint = JSON.stringify([sourceId, code, email, input.amountCents, note]);
 
-  db.exec("BEGIN IMMEDIATE");
-  try {
-    const prior = db.prepare(`SELECT request_fingerprint, transfer_id FROM banking_transfer_requests WHERE owner_user_id = ? AND idempotency_key = ?`).get(owner, key);
-    if (prior) {
-      if (prior.request_fingerprint !== fingerprint) throw new BankingError("IDEMPOTENCY_CONFLICT", "Transfer key was already used with different details.");
-      db.exec("COMMIT");
-      return { transferId: String(prior.transfer_id), replayed: true };
+  return inTransaction(pool, async (client) => {
+    await lockIdempotency(client, owner, `transfer:${key}`);
+    const prior = await client.query<DbRow>(`SELECT request_fingerprint, transfer_id FROM banking_transfer_requests
+      WHERE owner_user_id = $1 AND idempotency_key = $2`, [owner, key]);
+    if (prior.rows[0]) {
+      if (prior.rows[0].request_fingerprint !== fingerprint) throw new BankingError("IDEMPOTENCY_CONFLICT", "Transfer key was already used with different details.");
+      return { transferId: String(prior.rows[0].transfer_id), replayed: true };
     }
-    const source = db.prepare("SELECT * FROM banking_accounts WHERE id = ? AND owner_user_id = ?").get(sourceId, owner);
-    if (!source) throw new BankingError("ACCOUNT_NOT_FOUND", "Source account was not found.");
-    const destination = db.prepare("SELECT * FROM banking_accounts WHERE share_code = ?").get(code);
-    if (!destination) throw new BankingError("RECIPIENT_NOT_FOUND", "Recipient code was not found.");
-    if (String(destination.id) === sourceId) throw new BankingError("SELF_TRANSFER", "Transfers to the same account are not allowed.");
-    const recipient = db.prepare("SELECT email FROM user WHERE id = ?").get(String(destination.owner_user_id));
-    if (!recipient || String(recipient.email).trim().toLowerCase() !== email) {
+
+    const sourceOwnership = await client.query("SELECT id FROM banking_accounts WHERE id = $1 AND owner_user_id = $2", [sourceId, owner]);
+    if (!sourceOwnership.rowCount) throw new BankingError("ACCOUNT_NOT_FOUND", "Source account was not found.");
+    const destinationLookup = await client.query<DbRow>("SELECT id FROM banking_accounts WHERE share_code = $1", [code]);
+    if (!destinationLookup.rows[0]) throw new BankingError("RECIPIENT_NOT_FOUND", "Recipient code was not found.");
+    const destinationId = String(destinationLookup.rows[0].id);
+    if (destinationId === sourceId) throw new BankingError("SELF_TRANSFER", "Transfers to the same account are not allowed.");
+
+    // Lock both rows one at a time in deterministic ID order, preventing cross-transfer deadlocks.
+    const locked = new Map<string, DbRow>();
+    for (const id of [sourceId, destinationId].sort()) {
+      const result = await client.query<DbRow>("SELECT * FROM banking_accounts WHERE id = $1 FOR UPDATE", [id]);
+      if (result.rows[0]) locked.set(id, result.rows[0]);
+    }
+    const source = locked.get(sourceId);
+    if (!source || String(source.owner_user_id) !== owner) throw new BankingError("ACCOUNT_NOT_FOUND", "Source account was not found.");
+    const destination = locked.get(destinationId);
+    if (!destination || String(destination.share_code) !== code) throw new BankingError("RECIPIENT_NOT_FOUND", "Recipient code was not found.");
+
+    const recipient = await client.query<DbRow>("SELECT email FROM \"user\" WHERE id = $1", [String(destination.owner_user_id)]);
+    if (!recipient.rows[0] || String(recipient.rows[0].email).trim().toLowerCase() !== email) {
       throw new BankingError("RECIPIENT_EMAIL_MISMATCH", "Recipient code and email do not match.");
     }
-    const balance = cents(source, "balance_cents");
-    if (balance < input.amountCents) throw new BankingError("INSUFFICIENT_FUNDS", "Account has insufficient funds.");
+    const sourceBalance = cents(source, "balance_cents");
+    const destinationBalance = cents(destination, "balance_cents");
+    if (sourceBalance < input.amountCents) throw new BankingError("INSUFFICIENT_FUNDS", "Account has insufficient funds.");
+    if (destinationBalance > MAX_CENTS - input.amountCents) throw new BankingError("BALANCE_LIMIT", "Recipient account balance would exceed the supported limit.");
+
     const transferId = randomUUID();
     const now = new Date().toISOString();
-    db.prepare("UPDATE banking_accounts SET balance_cents = balance_cents - ? WHERE id = ?").run(input.amountCents, sourceId);
-    db.prepare("UPDATE banking_accounts SET balance_cents = balance_cents + ? WHERE id = ?").run(input.amountCents, String(destination.id));
-    db.prepare("INSERT INTO banking_transfers(id, source_account_id, destination_account_id, amount_cents, created_at) VALUES (?, ?, ?, ?, ?)")
-      .run(transferId, sourceId, String(destination.id), input.amountCents, now);
-    const ledger = db.prepare(`INSERT INTO banking_ledger_entries(id, account_id, signed_cents, description, category, payment_channel, transfer_id, created_at)
-      VALUES (?, ?, ?, ?, 'Transfer', 'online', ?, ?)`);
-    ledger.run(randomUUID(), sourceId, -input.amountCents, note || "Transfer sent", transferId, now);
-    ledger.run(randomUUID(), String(destination.id), input.amountCents, note || "Transfer received", transferId, now);
-    db.prepare(`INSERT INTO banking_transfer_requests(owner_user_id, idempotency_key, request_fingerprint, transfer_id) VALUES (?, ?, ?, ?)`)
-      .run(owner, key, fingerprint, transferId);
-    db.exec("COMMIT");
+    await client.query("UPDATE banking_accounts SET balance_cents = balance_cents - $1 WHERE id = $2", [input.amountCents, sourceId]);
+    await client.query("UPDATE banking_accounts SET balance_cents = balance_cents + $1 WHERE id = $2", [input.amountCents, destinationId]);
+    await client.query(`INSERT INTO banking_transfers(id, source_account_id, destination_account_id, amount_cents, created_at)
+      VALUES ($1, $2, $3, $4, $5)`, [transferId, sourceId, destinationId, input.amountCents, now]);
+    const ledgerQuery = `INSERT INTO banking_ledger_entries
+      (id, account_id, signed_cents, description, category, payment_channel, transfer_id, created_at)
+      VALUES ($1, $2, $3, $4, 'Transfer', 'online', $5, $6)`;
+    await client.query(ledgerQuery, [randomUUID(), sourceId, -input.amountCents, note || "Transfer sent", transferId, now]);
+    await client.query(ledgerQuery, [randomUUID(), destinationId, input.amountCents, note || "Transfer received", transferId, now]);
+    await client.query(`INSERT INTO banking_transfer_requests(owner_user_id, idempotency_key, request_fingerprint, transfer_id)
+      VALUES ($1, $2, $3, $4)`, [owner, key, fingerprint, transferId]);
     return { transferId, replayed: false };
-  } catch (error) {
-    try { db.exec("ROLLBACK"); } catch { /* transaction may already be closed */ }
-    throw error;
-  }
+  });
 }
