@@ -157,11 +157,11 @@
 @layer components {
   /* Home */
   .home {
-    @apply no-scrollbar flex w-full flex-row max-xl:max-h-screen max-xl:overflow-y-scroll;
+    @apply no-scrollbar flex min-w-0 w-full flex-row max-xl:max-h-screen max-xl:overflow-y-scroll;
   }
 
   .home-content {
-    @apply no-scrollbar flex w-full flex-1 flex-col gap-8 px-5 sm:px-8 py-7 lg:py-12 xl:max-h-screen xl:overflow-y-scroll;
+    @apply no-scrollbar flex min-w-0 w-full flex-1 flex-col gap-8 px-5 sm:px-8 py-7 lg:py-12 xl:max-h-screen xl:overflow-y-scroll;
   }
 
   .home-header {
@@ -206,7 +206,7 @@
 
   /* Right sidebar */
   .right-sidebar {
-    @apply no-scrollbar hidden h-screen max-h-screen flex-col border-l border-gray-200 xl:flex w-[355px] xl:overflow-y-scroll;
+    @apply no-scrollbar hidden h-screen max-h-screen w-[355px] min-w-[355px] flex-col border-l border-gray-200 xl:flex xl:overflow-y-scroll;
   }
 
   .profile-banner {
@@ -244,7 +244,7 @@
 
   /* My Banks */
   .transactions {
-    @apply flex max-h-screen w-full flex-col gap-8 overflow-y-scroll bg-gray-25 p-8 xl:py-12;
+    @apply flex min-w-0 max-h-screen w-full flex-1 flex-col gap-8 overflow-y-scroll bg-gray-25 p-5 sm:p-8 xl:py-12;
   }
 
   .transactions-header {
@@ -252,11 +252,11 @@
   }
 
   .transactions-account {
-    @apply flex flex-col justify-between gap-4 rounded-lg border-y bg-blue-600 px-4 py-5 md:flex-row;
+    @apply flex min-w-0 flex-col justify-between gap-4 rounded-lg border-y bg-blue-600 px-4 py-5 md:flex-row;
   }
 
   .transactions-account-balance {
-    @apply flex-center flex-col  gap-2 rounded-md bg-blue-25/20 px-4 py-2 text-white;
+    @apply flex-center min-w-0 flex-col gap-2 rounded-md bg-blue-25/20 px-4 py-2 text-white;
   }
 
   .header-box {
