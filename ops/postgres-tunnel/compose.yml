@@ -1,0 +1,59 @@
+name: td-banking-postgres-tunnel
+
+services:
+  postgres-tunnel:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    expose:
+      - "8080"
+    environment:
+      PORT: "8080"
+      TUNNEL_TOKEN_SHA256: ${TUNNEL_TOKEN_SHA256:?Set one to eight lowercase SHA-256 token digests in Dokploy}
+    networks:
+      tunnel-private:
+        aliases:
+          - postgres-tunnel
+      dokploy-network: {}
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    cpus: 0.50
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  cloudflared:
+    image: cloudflare/cloudflared:2026.11.1
+    restart: unless-stopped
+    command: ["tunnel", "--no-autoupdate", "run"]
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?Set the Cloudflare remotely-managed tunnel token in Dokploy}
+    depends_on:
+      postgres-tunnel:
+        condition: service_healthy
+    networks:
+      - tunnel-private
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    cpus: 0.50
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  tunnel-private:
+    name: td-banking-postgres-tunnel_private
+  dokploy-network:
+    name: dokploy-network
+    external: true

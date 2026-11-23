@@ -1,0 +1,12 @@
+{
+  "name": "td-banking-postgres-tunnel",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "dependencies": {
+    "ws": "8.23.0"
+  }
+}

@@ -78,6 +78,8 @@ The migration process uses a database advisory lock, so concurrent invocations s
 
 Deploy the whole Next.js app to Vercel. Use a PostgreSQL service reachable from the app's server runtime, preferably in the same region. Set the production environment variables in Vercel, then run the migration command from a release job or another controlled Node.js 24 environment with the production migration URL before promoting the release. Include preview database URLs only when preview deployments should have their own isolated data.
 
+To use a shared PostgreSQL instance on Dokploy without exposing its database port, follow the [HTTPS gateway setup](ops/postgres-tunnel/README.md). Vercel keeps the application's database URL and PostgreSQL TLS settings, and uses two additional server-only values to reach the gateway. Keep the migration credentials in the release environment.
+
 ### Dokploy
 
 Deploy the Next.js app and a PostgreSQL service in Dokploy. Keep PostgreSQL data on a persistent volume and use the database's internal service hostname in the app's `DATABASE_URL` and `MIGRATION_DATABASE_URL`. Run the migration command as a pre-deploy or release step before switching traffic to the new app version.
