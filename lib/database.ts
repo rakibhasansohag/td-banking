@@ -1,4 +1,5 @@
 import { Pool, type PoolConfig } from "pg";
+import { createDatabaseGatewayStreamFactory } from "./database-gateway.ts";
 
 type PoolRegistry = typeof globalThis & {
   __tdBankingRuntimePool?: Pool;
@@ -39,7 +40,11 @@ function isLoopbackHost(hostname: string): boolean {
   return host === "localhost" || host.endsWith(".localhost") || host === "::1" || /^127\./.test(host);
 }
 
-function getPoolConfig(connectionString: string, role: "runtime" | "migration"): PoolConfig {
+function getPoolConfig(
+  connectionString: string,
+  role: "runtime" | "migration",
+  gatewayConfigured: boolean
+): PoolConfig {
   let databaseURL: URL;
   try {
     databaseURL = new URL(connectionString);
@@ -75,7 +80,8 @@ function getPoolConfig(connectionString: string, role: "runtime" | "migration"):
     throw new Error("DATABASE_CLIENT_CERT and DATABASE_CLIENT_KEY must be configured together.");
   }
 
-  const useTLS = process.env.NODE_ENV === "production" || !localDatabase || Boolean(ca || cert || key);
+  const useTLS =
+    gatewayConfigured || process.env.NODE_ENV === "production" || !localDatabase || Boolean(ca || cert || key);
   if (process.env.NODE_ENV === "production" && !useTLS) {
     throw new Error("Production PostgreSQL connections require verified TLS.");
   }
@@ -105,7 +111,18 @@ function getPoolConfig(connectionString: string, role: "runtime" | "migration"):
 }
 
 function createPool(connectionString: string, role: "runtime" | "migration"): Pool {
-  const pool = new Pool(getPoolConfig(connectionString, role));
+  const gatewayURL = process.env.DATABASE_GATEWAY_URL;
+  const gatewayToken = process.env.DATABASE_GATEWAY_TOKEN;
+  if (Boolean(gatewayURL) !== Boolean(gatewayToken)) {
+    throw new Error("DATABASE_GATEWAY_URL and DATABASE_GATEWAY_TOKEN must be configured together.");
+  }
+  const gatewayConfigured = Boolean(gatewayURL && gatewayToken);
+  const poolConfig = getPoolConfig(connectionString, role, gatewayConfigured);
+  if (gatewayURL && gatewayToken) {
+    poolConfig.stream = createDatabaseGatewayStreamFactory(gatewayURL, gatewayToken);
+  }
+
+  const pool = new Pool(poolConfig);
   pool.on("error", (error: NodeJS.ErrnoException) => {
     // Do not log connection strings, credentials, or server error messages.
     console.error("Unexpected idle PostgreSQL client error", error.code ? { code: error.code } : {});
