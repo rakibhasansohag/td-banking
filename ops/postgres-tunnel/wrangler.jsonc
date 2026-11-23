@@ -1,0 +1,13 @@
+{
+  "name": "shared-postgres-gateway",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-11-23",
+  "workers_dev": true,
+  "preview_urls": false,
+  "vpc_services": [
+    {
+      "binding": "POSTGRES_GATEWAY",
+      "service_id": "01a20828-0abe-7203-8f37-76e424ced76c"
+    }
+  ]
+}

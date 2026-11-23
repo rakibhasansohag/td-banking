@@ -32,12 +32,15 @@ In Dokploy's app environment, set:
 | `TUNNEL_TOKEN` | Server-only token for the Cloudflare remotely managed Tunnel. Never set this in Vercel or commit it. |
 | `TUNNEL_TOKEN_SHA256` | Comma-separated lowercase SHA-256 hex digests for 1–8 client bearer tokens. No plaintext client token. |
 
-In Cloudflare Zero Trust, create a remotely-managed Tunnel and a public
-hostname route for `db-gateway.rakibhasansohag.com` to
-`http://postgres-tunnel:8080`. Attach the Cloudflare DNS hostname to that
-tunnel. WebSocket support is enabled by the normal proxied hostname; do not add
-a separate origin port. The origin scheme is HTTP because Cloudflare Tunnel
-connects on the private Compose network. Public clients use HTTPS/WSS.
+In Cloudflare **Networking → Tunnels**, create a remotely managed Tunnel.
+Under **Workers VPC → Services**, add an HTTP service on that tunnel pointing
+to `postgres-tunnel` on port `8080`. Bind the VPC service to the Worker as
+`POSTGRES_GATEWAY`. [wrangler.jsonc](wrangler.jsonc) contains the project's
+binding and [worker.mjs](worker.mjs) contains the Worker code. Deploy from the
+repository root with `npx wrangler deploy --config ops/postgres-tunnel/wrangler.jsonc`
+in the Cloudflare account that owns the tunnel. The Worker uses a separate
+`workers.dev` hostname because the portfolio zone's Bot Fight Mode challenges
+Vercel's automated requests. Workers VPC is free while in beta.
 
 Generate a distinct high-entropy client token per application. Send only the
 raw token to that app's server-side secret store and put its digest in Dokploy.
@@ -68,7 +71,7 @@ connection, so its WebSocket hostname goes in a separate variable.
 
 | Variable | Value |
 | --- | --- |
-| `DATABASE_GATEWAY_URL` | `wss://db-gateway.rakibhasansohag.com/v1/postgres` |
+| `DATABASE_GATEWAY_URL` | `wss://shared-postgres-gateway.rakibhasansohag133.workers.dev/v1/postgres` |
 | `DATABASE_GATEWAY_TOKEN` | The raw token issued for this app, saved as a Vercel secret |
 
 Deploy after saving both values. Sign in with a demo account and check that
@@ -80,7 +83,7 @@ wait for it to be ready before testing again.
 ### Other apps
 
 For an application with WebSocket support, use
-`wss://db-gateway.rakibhasansohag.com/v1/postgres` and send
+`wss://shared-postgres-gateway.rakibhasansohag133.workers.dev/v1/postgres` and send
 `Authorization: Bearer <client token>` during the WebSocket upgrade. Send
 PostgreSQL client bytes in binary frames and treat received binary frames as
 PostgreSQL server bytes. Do not use text frames. Keep the PostgreSQL driver's
