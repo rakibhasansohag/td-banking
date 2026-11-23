@@ -419,19 +419,122 @@
 
   /* Sidebar */
   .sidebar {
-    @apply sticky left-0 top-0 flex h-screen w-fit flex-col  justify-between border-r border-gray-200 bg-white pt-8 text-white max-md:hidden sm:p-4 xl:p-6 2xl:w-[355px];
+    @apply sticky left-0 top-0 flex h-screen w-[264px] shrink-0 flex-col justify-between border-r border-gray-200 bg-white p-4 pt-6 text-white xl:p-6 max-md:hidden;
+    transition: width 300ms ease-in-out;
   }
 
   .sidebar-logo {
-    @apply 2xl:text-26 font-ibm-plex-serif text-[26px] font-bold text-black-1 max-xl:hidden;
+    @apply font-ibm-plex-serif text-[26px] font-bold text-black-1;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: opacity 200ms ease-in-out, max-width 300ms ease-in-out;
+    max-width: 150px;
+  }
+
+  .sidebar-heading {
+    @apply mb-10 flex h-10 items-center justify-between gap-2;
+  }
+
+  .sidebar-brand {
+    @apply flex min-w-0 items-center gap-2;
+  }
+
+  .sidebar-toggle {
+    @apply flex size-8 shrink-0 items-center justify-center rounded-md text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500;
   }
 
   .sidebar-link {
-    @apply flex gap-3 items-center py-1 md:p-3 2xl:p-4 rounded-lg justify-center xl:justify-start;
+    @apply flex min-h-11 items-center justify-start gap-3 rounded-lg p-3;
   }
 
   .sidebar-label {
-    @apply text-16 font-semibold text-black-2 max-xl:hidden;
+    @apply text-16 font-semibold text-black-2;
+    overflow: hidden;
+    white-space: nowrap;
+    opacity: 1;
+    max-width: 180px;
+    transition: opacity 160ms ease-in-out, max-width 300ms ease-in-out;
+  }
+
+  .sidebar-collapsed {
+    width: 80px;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .sidebar-collapsed .sidebar-heading {
+    @apply flex-row justify-between gap-0;
+    height: 40px;
+  }
+
+  .sidebar-collapsed .sidebar-logo,
+  .sidebar-collapsed .sidebar-label,
+  .sidebar-collapsed .sidebar-action-label,
+  .sidebar-collapsed .sidebar-footer-label {
+    max-width: 0;
+    opacity: 0;
+  }
+
+  .sidebar-collapsed .sidebar-link,
+  .sidebar-collapsed .bank-action-default,
+  .sidebar-collapsed .footer {
+    @apply justify-center;
+  }
+
+  .sidebar-collapsed .sidebar-link {
+    @apply gap-0 px-0;
+  }
+
+  .sidebar-collapsed .bank-action-default {
+    @apply size-11 p-0;
+    justify-content: center !important;
+  }
+
+  .sidebar-collapsed .footer {
+    @apply gap-0 p-2;
+  }
+
+  .sidebar-action-label,
+  .sidebar-footer-label {
+    overflow: hidden;
+    white-space: nowrap;
+    transition: opacity 160ms ease-in-out, max-width 300ms ease-in-out;
+    max-width: 180px;
+  }
+
+  .sidebar-action-label {
+    @apply text-[16px] font-semibold text-black-2;
+  }
+
+  .sidebar-footer-label {
+    max-width: 150px;
+  }
+
+  .footer-collapsed .footer_name,
+  .footer-collapsed .footer_email {
+    width: 0;
+    flex: 0 1 0;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .footer-collapsed .footer_name {
+    display: none;
+  }
+
+  .footer-collapsed .footer_image {
+    @apply w-8;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sidebar,
+    .sidebar-logo,
+    .sidebar-label,
+    .sidebar-action-label,
+    .sidebar-footer-label {
+      transition-duration: 0.01ms;
+    }
   }
 }
 

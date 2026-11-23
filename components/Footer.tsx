@@ -11,9 +11,10 @@ interface FooterProps {
     email: string;
   };
   type?: string;
+  collapsed?: boolean;
 }
 
-const Footer = ({ user, type = "desktop" }: FooterProps) => {
+const Footer = ({ user, type = "desktop", collapsed = false }: FooterProps) => {
   const router = useRouter();
 
   const handleLogOut = async () => {
@@ -24,13 +25,13 @@ const Footer = ({ user, type = "desktop" }: FooterProps) => {
   };
 
   return (
-    <footer className="footer flex items-center space-x-4 p-4 bg-gray-100">
-      <div className={type === "mobile" ? "footer_name-mobile" : "footer_name"}>
+    <footer className={`footer flex items-center space-x-4 p-4 bg-gray-100${collapsed ? " footer-collapsed" : ""}`}>
+      <div className={type === "mobile" ? "footer_name-mobile" : "footer_name"} aria-hidden={collapsed}>
         <p className="text-xl font-bold text-gray-700">{user?.firstName[0]}</p>
       </div>
 
       <div
-        className={type === "mobile" ? "footer_email-mobile" : "footer_email"}
+        className={`${type === "mobile" ? "footer_email-mobile" : "footer_email"}${collapsed ? " sidebar-footer-label" : ""}`}
       >
         <h1 className="text-14 truncate font-normal text-gray-600">
           {user?.firstName}
@@ -44,6 +45,7 @@ const Footer = ({ user, type = "desktop" }: FooterProps) => {
         <button
           type="button"
           aria-label="Log out"
+          title={collapsed ? "Log out" : undefined}
           className="footer_image cursor-pointer"
           onClick={handleLogOut}
         >

@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { addDemoBankAccount } from "@/lib/actions/banking-ui.actions";
 import { Button } from "@/components/ui/button";
 
-export default function AddDemoBank({ variant = "default" }: { variant?: "default" | "primary" | "ghost" }) {
+export default function AddDemoBank({ variant = "default", collapsed = false }: { variant?: "default" | "primary" | "ghost"; collapsed?: boolean }) {
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
   const [requestKey, setRequestKey] = useState("");
@@ -33,10 +33,12 @@ export default function AddDemoBank({ variant = "default" }: { variant?: "defaul
     <Button
       onClick={addAccount}
       disabled={isPending}
+      aria-label={isPending ? "Adding demo bank" : "Add demo bank"}
+      title={collapsed ? (isPending ? "Adding demo bank" : "Add demo bank") : undefined}
       className={variant === "primary" ? "bank-action-primary" : variant === "ghost" ? "bank-action-ghost" : "bank-action-default"}
     >
       <Image src="/icons/connect-bank.svg" alt="" width={24} height={24} />
-      <span className="text-[16px] font-semibold text-black-2">
+      <span className={collapsed ? "sidebar-action-label" : "text-[16px] font-semibold text-black-2"}>
         {isPending ? "Adding demo bank…" : "Add demo bank"}
       </span>
     </Button>
