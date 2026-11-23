@@ -59,14 +59,40 @@ authorization boundary.
 
 ## Application configuration
 
+### TD Banking on Vercel
+
+Keep the existing `DATABASE_URL`, `DATABASE_CA_CERT`, `DATABASE_CLIENT_CERT`,
+and `DATABASE_CLIENT_KEY` in **Production**. The host in `DATABASE_URL` is
+also the PostgreSQL TLS certificate name. The gateway takes over the network
+connection, so its WebSocket hostname goes in a separate variable.
+
+| Variable | Value |
+| --- | --- |
+| `DATABASE_GATEWAY_URL` | `wss://db-gateway.rakibhasansohag.com/v1/postgres` |
+| `DATABASE_GATEWAY_TOKEN` | The raw token issued for this app, saved as a Vercel secret |
+
+Deploy after saving both values. Sign in with a demo account and check that
+its accounts and transaction history load. Then clear **External Port** on the
+PostgreSQL service in Dokploy. Check that an outside connection to port 6432
+fails and the demo still works. Changing the port can restart PostgreSQL, so
+wait for it to be ready before testing again.
+
+### Other apps
+
 For an application with WebSocket support, use
 `wss://db-gateway.rakibhasansohag.com/v1/postgres` and send
 `Authorization: Bearer <client token>` during the WebSocket upgrade. Send
 PostgreSQL client bytes in binary frames and treat received binary frames as
 PostgreSQL server bytes. Do not use text frames. Keep the PostgreSQL driver's
 TLS enabled so the inner TLS session reaches PostgreSQL unchanged; validate its
-certificate for `shared-postgres-db-vsq3j1`. A WebSocket TLS certificate only
+certificate for the hostname on its server certificate, currently
+`db.rakibhasansohag.com`. A WebSocket TLS certificate only
 authenticates the public Cloudflare edge, not PostgreSQL.
+
+Each app needs its own database, login, password, and, under the current
+PostgreSQL access rules, a client certificate for that login. An app hosted
+inside Dokploy can connect over `dokploy-network` with the appropriate
+PostgreSQL TLS and role settings.
 
 The service permits up to 32 active sessions, limits each WebSocket payload to
 1 MiB, rejects non-binary frames, bounds forwarding buffers, caps idle sessions
