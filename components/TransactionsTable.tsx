@@ -26,10 +26,10 @@ const TransactionsTable = ({ transactions }: { transactions: TableTransaction[] 
         <TableRow>
           <TableHead>Transaction</TableHead>
           <TableHead className="text-right">Amount</TableHead>
-          <TableHead className="max-sm:hidden">Status</TableHead>
-          <TableHead className="max-sm:hidden">Date</TableHead>
-          <TableHead className="max-md:hidden">Channel</TableHead>
-          <TableHead className="max-md:hidden">Category</TableHead>
+          <TableHead className="max-lg:hidden">Status</TableHead>
+          <TableHead className="max-lg:hidden">Date</TableHead>
+          <TableHead className="table-wide-column">Channel</TableHead>
+          <TableHead className="table-wide-column">Category</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -42,22 +42,22 @@ const TransactionsTable = ({ transactions }: { transactions: TableTransaction[] 
             <TableRow key={transaction.id} className="transactions-table-row">
               <TableCell className="transaction-name-cell">
                 <span className="transaction-name">{removeSpecialCharacters(transaction.name)}</span>
-                <span className="transaction-mobile-detail md:hidden">
-                  {date} · {transaction.category}
+                <span className="transaction-mobile-detail lg:hidden">
+                  {date} · {transaction.category} · {transaction.pending ? "Processing" : "Complete"}
                 </span>
               </TableCell>
               <TableCell className={`transaction-amount ${isDebit ? "is-debit" : "is-credit"}`}>
                 {signedAmount}
               </TableCell>
-              <TableCell className="max-sm:hidden">
+              <TableCell className="max-lg:hidden">
                 <span className="transaction-status">
                   <span className={`transaction-status-dot ${transaction.pending ? "is-pending" : ""}`} />
                   {transaction.pending ? "Processing" : "Complete"}
                 </span>
               </TableCell>
-              <TableCell className="whitespace-nowrap text-gray-600 max-sm:hidden">{date}</TableCell>
-              <TableCell className="capitalize text-gray-600 max-md:hidden">{transaction.paymentChannel}</TableCell>
-              <TableCell className="text-gray-600 max-md:hidden">{transaction.category}</TableCell>
+              <TableCell className="whitespace-nowrap text-gray-600 max-lg:hidden">{date}</TableCell>
+              <TableCell className="table-wide-column capitalize text-gray-600">{transaction.paymentChannel}</TableCell>
+              <TableCell className="table-wide-column text-gray-600">{transaction.category}</TableCell>
             </TableRow>
           );
         })}

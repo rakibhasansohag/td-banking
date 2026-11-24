@@ -6,13 +6,22 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Footer from "./Footer";
 import AddDemoBank from "./AddDemoBank";
 
 const Sidebar = ({ user }: { user: { email: string; firstName: string; lastName: string; name: string } }) => {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  useEffect(() => {
+    const tablet = window.matchMedia("(max-width: 1023px)");
+    const syncWithViewport = () => setIsCollapsed(tablet.matches);
+
+    syncWithViewport();
+    tablet.addEventListener("change", syncWithViewport);
+    return () => tablet.removeEventListener("change", syncWithViewport);
+  }, []);
 
   return (
     <section className={cn("sidebar", isCollapsed && "sidebar-collapsed")}>
