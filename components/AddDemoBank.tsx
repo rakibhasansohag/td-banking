@@ -8,7 +8,7 @@ import { addDemoBankAccount } from "@/lib/actions/banking-ui.actions";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export default function AddDemoBank({ variant = "default", collapsed = false }: { variant?: "default" | "primary" | "ghost"; collapsed?: boolean }) {
+export default function AddDemoBank({ variant = "default", collapsed = false }: { variant?: "default" | "primary" | "ghost" | "sidebar"; collapsed?: boolean }) {
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
   const [requestKey, setRequestKey] = useState("");
@@ -36,14 +36,17 @@ export default function AddDemoBank({ variant = "default", collapsed = false }: 
       disabled={isPending}
       aria-label={isPending ? "Adding demo bank" : "Add demo bank"}
       title={collapsed ? (isPending ? "Adding demo bank" : "Add demo bank") : undefined}
-      className={cn(`bank-action-${variant}`, collapsed && "size-11 gap-0 p-0")}
+      className={cn(
+        variant === "sidebar" ? "sidebar-link h-auto w-full bg-transparent p-3 hover:bg-gray-50" : `bank-action-${variant}`,
+        collapsed && "gap-0 px-0",
+      )}
     >
       <Image
         src="/icons/connect-bank.svg"
         alt=""
         width={28}
         height={28}
-        className={collapsed ? "size-7 shrink-0" : "size-6"}
+        className={variant === "sidebar" ? "size-7 shrink-0" : "size-6"}
       />
       <span className={collapsed ? "sidebar-action-label" : "text-[16px] font-semibold text-black-2"}>
         {isPending ? "Adding demo bank…" : "Add demo bank"}

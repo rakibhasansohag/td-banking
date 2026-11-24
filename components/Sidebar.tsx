@@ -85,7 +85,7 @@ const Sidebar = ({ user }: { user: { email: string; firstName: string; lastName:
           );
         })}
 
-        <AddDemoBank collapsed={isCollapsed} />
+        <AddDemoBank variant="sidebar" collapsed={isCollapsed} />
       </nav>
 
       <Footer user={user} collapsed={isCollapsed} />
