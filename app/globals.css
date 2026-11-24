@@ -458,6 +458,11 @@
 
   .recent-transactions-tablist {
     @apply mb-4 h-auto justify-start rounded-none border-b border-gray-200 bg-transparent p-0;
+    scrollbar-width: none;
+  }
+
+  .recent-transactions-tablist::-webkit-scrollbar {
+    display: none;
   }
 
   .recent-transactions-tablist [role="tab"] {

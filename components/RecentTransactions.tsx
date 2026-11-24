@@ -60,9 +60,13 @@ export default function RecentTransactions({
         </p>
       ) : (
         <Tabs value={selectedAccountId} onValueChange={changeAccount} className="w-full min-w-0">
-          <TabsList className="recent-transactions-tablist max-w-full overflow-x-auto">
+          <TabsList className="recent-transactions-tablist max-w-full overflow-x-auto justify-start rounded-none bg-transparent p-0 h-auto">
             {accounts.map((account) => (
-              <TabsTrigger key={account.id} value={account.id}>
+              <TabsTrigger
+                key={account.id}
+                value={account.id}
+                className="h-auto rounded-none bg-transparent p-0 shadow-none data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+              >
                 <BankTabItem account={account} selectedAccountId={selectedAccountId} />
               </TabsTrigger>
             ))}
