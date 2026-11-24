@@ -6,6 +6,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { addDemoBankAccount } from "@/lib/actions/banking-ui.actions";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export default function AddDemoBank({ variant = "default", collapsed = false }: { variant?: "default" | "primary" | "ghost"; collapsed?: boolean }) {
   const router = useRouter();
@@ -35,14 +36,14 @@ export default function AddDemoBank({ variant = "default", collapsed = false }: 
       disabled={isPending}
       aria-label={isPending ? "Adding demo bank" : "Add demo bank"}
       title={collapsed ? (isPending ? "Adding demo bank" : "Add demo bank") : undefined}
-      className={variant === "primary" ? "bank-action-primary" : variant === "ghost" ? "bank-action-ghost" : "bank-action-default"}
+      className={cn(`bank-action-${variant}`, collapsed && "size-11 gap-0 p-0")}
     >
       <Image
         src="/icons/connect-bank.svg"
         alt=""
         width={28}
         height={28}
-        className={collapsed ? "size-7" : "size-6"}
+        className={collapsed ? "size-7 shrink-0" : "size-6"}
       />
       <span className={collapsed ? "sidebar-action-label" : "text-[16px] font-semibold text-black-2"}>
         {isPending ? "Adding demo bank…" : "Add demo bank"}
