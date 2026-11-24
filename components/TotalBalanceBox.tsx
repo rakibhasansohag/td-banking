@@ -1,32 +1,26 @@
-import AnimatedCounter from './AnimatedCounter';
-import DoughnutChart from './DoughnutChart';
-import type { BankingAccount } from '@/lib/banking';
+import AnimatedCounter from "./AnimatedCounter";
 
 const TotalBalanceBox = ({
-  accounts = [], totalBanks, totalCurrentBalance
-}: { accounts: BankingAccount[]; totalBanks: number; totalCurrentBalance: number }) => {
-  return (
-    <section className="total-balance">
-      <div className="total-balance-chart">
-        <DoughnutChart accounts={accounts} />
+  totalBanks,
+  totalCurrentBalance,
+}: {
+  totalBanks: number;
+  totalCurrentBalance: number;
+}) => (
+  <section className="total-balance" aria-label="Total account balance">
+    <div className="total-balance-copy">
+      <p className="total-balance-label">Total balance</p>
+      <div className="total-balance-amount">
+        <AnimatedCounter amount={totalCurrentBalance} />
       </div>
+      <p className="total-balance-caption">
+        Across {totalBanks} {totalBanks === 1 ? "account" : "accounts"}
+      </p>
+    </div>
+    <div className="total-balance-mark" aria-hidden="true">
+      <span>$</span>
+    </div>
+  </section>
+);
 
-      <div className="flex flex-col gap-6">
-        <h2 className="header-2">
-          Bank Accounts: {totalBanks}
-        </h2>
-        <div className="flex flex-col gap-2">
-          <p className="total-balance-label">
-            Total Current Balance
-          </p>
-
-          <div className="total-balance-amount flex-center gap-2">
-            <AnimatedCounter amount={totalCurrentBalance} />
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-export default TotalBalanceBox
+export default TotalBalanceBox;

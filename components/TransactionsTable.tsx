@@ -6,27 +6,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { transactionCategoryStyles } from "@/constants";
-import {
-  cn,
-  formatAmount,
-  formatDateTime,
-  removeSpecialCharacters,
-} from "@/lib/utils";
-
-const CategoryBadge = ({ category }: CategoryBadgeProps) => {
-  const { borderColor, backgroundColor, textColor, chipBackgroundColor } =
-    transactionCategoryStyles[
-      category as keyof typeof transactionCategoryStyles
-    ] || transactionCategoryStyles.default;
-
-  return (
-    <div className={cn("category-badge", borderColor, chipBackgroundColor)}>
-      <div className={cn("size-2 rounded-full", backgroundColor)} />
-      <p className={cn("text-[12px] font-medium", textColor)}>{category}</p>
-    </div>
-  );
-};
+import { formatAmount, formatDateTime, removeSpecialCharacters } from "@/lib/utils";
 
 type TableTransaction = {
   id: string;
@@ -39,73 +19,51 @@ type TableTransaction = {
   category: string;
 };
 
-const TransactionsTable = ({ transactions }: { transactions: TableTransaction[] }) => {
-  return (
-    <Table>
-      <TableHeader className="bg-[#f9fafb]">
+const TransactionsTable = ({ transactions }: { transactions: TableTransaction[] }) => (
+  <div className="transactions-table-wrap">
+    <Table className="transactions-table">
+      <TableHeader className="transactions-table-header">
         <TableRow>
-          <TableHead className="px-2">Transaction</TableHead>
-          <TableHead className="px-2">Amount</TableHead>
-          <TableHead className="px-2">Status</TableHead>
-          <TableHead className="px-2">Date</TableHead>
-          <TableHead className="px-2 max-md:hidden">Channel</TableHead>
-          <TableHead className="px-2 max-md:hidden">Category</TableHead>
+          <TableHead>Transaction</TableHead>
+          <TableHead className="text-right">Amount</TableHead>
+          <TableHead className="max-sm:hidden">Status</TableHead>
+          <TableHead className="max-sm:hidden">Date</TableHead>
+          <TableHead className="max-md:hidden">Channel</TableHead>
+          <TableHead className="max-md:hidden">Category</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
-        {transactions?.map((t) => {
-          const status = t.pending ? "Processing" : "Success";
-          const amount = formatAmount(t.amount);
-
-          const isDebit = t.type === "debit";
-          const isCredit = t.type === "credit";
+        {transactions.map((transaction) => {
+          const isDebit = transaction.type === "debit";
+          const signedAmount = `${isDebit ? "−" : "+"}${formatAmount(Math.abs(transaction.amount))}`;
+          const date = formatDateTime(new Date(transaction.date)).dateTime;
 
           return (
-            <TableRow
-              key={t.id}
-              className={`${
-                isDebit || amount[0] === "-" ? "bg-[#FFFBFA]" : "bg-[#F6FEF9]"
-              } !over:bg-none !border-b-DEFAULT`}
-            >
-              <TableCell className="max-w-[250px] pl-2 pr-4 md:pr-10">
-                <div className="flex items-center gap-3">
-                  <h1 className="text-14 truncate font-semibold text-[#344054]">
-                    {removeSpecialCharacters(t.name)}
-                  </h1>
-                </div>
+            <TableRow key={transaction.id} className="transactions-table-row">
+              <TableCell className="transaction-name-cell">
+                <span className="transaction-name">{removeSpecialCharacters(transaction.name)}</span>
+                <span className="transaction-mobile-detail md:hidden">
+                  {date} · {transaction.category}
+                </span>
               </TableCell>
-
-              <TableCell
-                className={`pl-2 pr-4 md:pr-10 font-semibold ${
-                  isDebit || amount[0] === "-"
-                    ? "text-[#f04438]"
-                    : "text-[#039855]"
-                }`}
-              >
-                {isDebit ? `-${amount}` : isCredit ? amount : amount}
+              <TableCell className={`transaction-amount ${isDebit ? "is-debit" : "is-credit"}`}>
+                {signedAmount}
               </TableCell>
-
-              <TableCell className="pl-2 pr-4 md:pr-10">
-                <CategoryBadge category={status} />
+              <TableCell className="max-sm:hidden">
+                <span className="transaction-status">
+                  <span className={`transaction-status-dot ${transaction.pending ? "is-pending" : ""}`} />
+                  {transaction.pending ? "Processing" : "Complete"}
+                </span>
               </TableCell>
-
-              <TableCell className="min-w-32 pl-2 pr-4 md:pr-10">
-                {formatDateTime(new Date(t.date)).dateTime}
-              </TableCell>
-
-              <TableCell className="pl-2 pr-4 md:pr-10 capitalize min-w-24 max-md:hidden">
-                {t.paymentChannel}
-              </TableCell>
-
-              <TableCell className="pl-2 pr-10 max-md:hidden">
-                <CategoryBadge category={t.category} />
-              </TableCell>
+              <TableCell className="whitespace-nowrap text-gray-600 max-sm:hidden">{date}</TableCell>
+              <TableCell className="capitalize text-gray-600 max-md:hidden">{transaction.paymentChannel}</TableCell>
+              <TableCell className="text-gray-600 max-md:hidden">{transaction.category}</TableCell>
             </TableRow>
           );
         })}
       </TableBody>
     </Table>
-  );
-};
+  </div>
+);
 
 export default TransactionsTable;

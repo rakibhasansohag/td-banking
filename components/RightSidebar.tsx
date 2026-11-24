@@ -1,6 +1,4 @@
-import React from "react";
-import BankCard from "./BankCard";
-import { countTransactionCategories } from "@/lib/utils";
+import { countTransactionCategories, formatAmount } from "@/lib/utils";
 import Category from "./Category";
 import AddDemoBank from "./AddDemoBank";
 import type { BankingAccount } from "@/lib/banking";
@@ -14,65 +12,52 @@ const RightSidebar = ({ user, transactions, banks }: {
   banks: BankingAccount[];
 }) => {
   const categories: CategoryCount[] = countTransactionCategories(transactions);
+  const initials = `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}` || "U";
 
   return (
-    <aside className="right-sidebar">
-      <section className="flex flex-col pb-8">
-        <div className="profile-banner" />
-        <div className="profile">
-          <div className="profile-img">
-            <span className="text-5xl font-bold text-blue-500">
-              {user.firstName[0]}
-            </span>
-          </div>
-
-          <div className="profile-details">
-            <h1 className="profile-name">
-              {user.firstName} {user.lastName}
-            </h1>
-            <p className="profile-email">{user.email}</p>
-          </div>
+    <aside className="right-sidebar" aria-label="Account summary">
+      <section className="profile-summary">
+        <div className="profile-avatar" aria-hidden="true">{initials}</div>
+        <div className="profile-details">
+          <h2 className="profile-name">{user.firstName} {user.lastName}</h2>
+          <p className="profile-email">{user.email}</p>
         </div>
       </section>
 
-      <section className="banks">
-        <div className="flex w-full justify-between">
-          <h2 className="header-2">My Banks</h2>
+      <section className="sidebar-section" aria-labelledby="accounts-heading">
+        <div className="sidebar-section-heading">
+          <h2 id="accounts-heading">Accounts</h2>
           <AddDemoBank variant="ghost" />
         </div>
-
-        {banks?.length > 0 && (
-          <div className="relative flex flex-1 flex-col items-center justify-center gap-5">
-            <div className="relative z-10">
-              <BankCard
-                key={banks[0].id}
-                account={banks[0]}
-                userName={`${user.firstName} ${user.lastName}`}
-                showBalance={false}
-              />
-            </div>
-            {banks[1] && (
-              <div className="absolute right-0 top-8 z-0 w-[90%]">
-                <BankCard
-                  key={banks[1].id}
-                  account={banks[1]}
-                  userName={`${user.firstName} ${user.lastName}`}
-                  showBalance={false}
-                />
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="mt-10 flex flex-1 flex-col gap-6">
-          <h2 className="header-2">Top categories</h2>
-
-          <div className="space-y-5">
-            {categories.map((category) => (
-              <Category key={category.name} category={category} />
+        {banks.length ? (
+          <ul className="account-summary-list">
+            {banks.map((account) => (
+              <li className="account-summary-row" key={account.id}>
+                <span className="account-summary-icon" aria-hidden="true">{account.name.slice(0, 1)}</span>
+                <span className="account-summary-copy">
+                  <span className="account-summary-name">{account.name}</span>
+                  <span className="account-summary-mask">{account.subtype} ···· {account.mask}</span>
+                </span>
+                <span className="account-summary-balance">{formatAmount(account.currentBalance)}</span>
+              </li>
             ))}
-          </div>
+          </ul>
+        ) : (
+          <p className="sidebar-empty">Add a demo account to see it here.</p>
+        )}
+      </section>
+
+      <section className="sidebar-section" aria-labelledby="categories-heading">
+        <div className="sidebar-section-heading">
+          <h2 id="categories-heading">Top categories</h2>
         </div>
+        {categories.length ? (
+          <ul className="category-list">
+            {categories.map((category) => <li key={category.name}><Category category={category} /></li>)}
+          </ul>
+        ) : (
+          <p className="sidebar-empty">Categories appear as you use your accounts.</p>
+        )}
       </section>
     </aside>
   );

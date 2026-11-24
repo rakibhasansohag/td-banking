@@ -10,18 +10,9 @@ export const BankTabItem = ({ account, selectedAccountId }: {
   const isActive = selectedAccountId === account.id;
 
   return (
-    <div
-      className={cn("banktab-item", {
-        " border-blue-600": isActive,
-      })}
-    >
-      <p
-        className={cn(`text-16 line-clamp-1 flex-1 font-medium text-gray-500`, {
-          " text-blue-600": isActive,
-        })}
-      >
-        {account.name}
-      </p>
+    <div className={cn("banktab-item", { "is-active": isActive })}>
+      <span className="banktab-account-name">{account.name}</span>
+      <span className="banktab-account-mask">···· {account.mask}</span>
     </div>
   );
 };

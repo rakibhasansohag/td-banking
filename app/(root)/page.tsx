@@ -1,4 +1,6 @@
+import Link from "next/link";
 import HeaderBox from "@/components/HeaderBox";
+import AddDemoBank from "@/components/AddDemoBank";
 import RecentTransactions from "@/components/RecentTransactions";
 import RightSidebar from "@/components/RightSidebar";
 import TotalBalanceBox from "@/components/TotalBalanceBox";
@@ -25,14 +27,19 @@ export default async function Home({ searchParams }: PageProps) {
     <section className="home min-w-0">
       <div className="home-content min-w-0">
         <header className="home-header">
-          <HeaderBox
-            type="greeting"
-            title="Welcome"
-            user={user?.firstName || "Guest"}
-            subtext="Manage your simulated bank accounts and sample transactions."
-          />
+          <div className="dashboard-heading">
+            <HeaderBox
+              title="Overview"
+              subtext={`Welcome back, ${user?.firstName || "Guest"}. Here’s your account activity.`}
+            />
+            <div className="dashboard-actions">
+              <AddDemoBank variant="ghost" />
+              <Link href="/payment-transfer" className="dashboard-transfer-link">
+                Transfer funds
+              </Link>
+            </div>
+          </div>
           <TotalBalanceBox
-            accounts={accounts}
             totalBanks={accounts.length}
             totalCurrentBalance={totalBalance}
           />
