@@ -37,7 +37,13 @@ export default function AddDemoBank({ variant = "default", collapsed = false }: 
       title={collapsed ? (isPending ? "Adding demo bank" : "Add demo bank") : undefined}
       className={variant === "primary" ? "bank-action-primary" : variant === "ghost" ? "bank-action-ghost" : "bank-action-default"}
     >
-      <Image src="/icons/connect-bank.svg" alt="" width={24} height={24} />
+      <Image
+        src="/icons/connect-bank.svg"
+        alt=""
+        width={28}
+        height={28}
+        className={collapsed ? "size-7" : "size-6"}
+      />
       <span className={collapsed ? "sidebar-action-label" : "text-[16px] font-semibold text-black-2"}>
         {isPending ? "Adding demo bank…" : "Add demo bank"}
       </span>

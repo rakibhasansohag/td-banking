@@ -32,7 +32,7 @@ const Sidebar = ({ user }: { user: { email: string; firstName: string; lastName:
             width={34}
             height={34}
             alt=""
-            className="size-[24px] shrink-0"
+            className="size-7 shrink-0"
           />
           <h1 className="sidebar-logo">Horizon</h1>
         </Link>
@@ -48,7 +48,7 @@ const Sidebar = ({ user }: { user: { email: string; firstName: string; lastName:
             aria-hidden="true"
             viewBox="0 0 24 24"
             fill="none"
-            className={cn("size-5 transition-transform duration-300 motion-reduce:transition-none", isCollapsed && "rotate-180")}
+            className={cn("size-5 transition-transform duration-300 motion-reduce:transition-none", isCollapsed && "size-7 rotate-180")}
           >
             <path d="m14 5-7 7 7 7M20 5v14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
@@ -68,7 +68,7 @@ const Sidebar = ({ user }: { user: { email: string; firstName: string; lastName:
               aria-label={item.label}
               aria-current={isActive ? "page" : undefined}
             >
-              <div className="relative size-6">
+              <div className="relative size-7">
                 <Image
                   src={item.imgURL}
                   alt={item.label}
