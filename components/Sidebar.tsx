@@ -68,7 +68,7 @@ const Sidebar = ({ user }: { user: { email: string; firstName: string; lastName:
               aria-label={item.label}
               aria-current={isActive ? "page" : undefined}
             >
-              <div className="relative size-7">
+              <div className="relative size-7 shrink-0">
                 <Image
                   src={item.imgURL}
                   alt={item.label}

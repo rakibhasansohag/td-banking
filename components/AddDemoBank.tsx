@@ -38,7 +38,7 @@ export default function AddDemoBank({ variant = "default", collapsed = false }: 
       title={collapsed ? (isPending ? "Adding demo bank" : "Add demo bank") : undefined}
       className={cn(
         variant === "sidebar" ? "sidebar-link h-auto w-full bg-transparent p-3 hover:bg-gray-50" : `bank-action-${variant}`,
-        collapsed && "gap-0 px-0",
+        variant === "sidebar" && (collapsed ? "justify-center gap-0 px-0" : "justify-start"),
       )}
     >
       <Image
