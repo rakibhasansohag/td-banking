@@ -15,8 +15,8 @@ export default async function Transfer() {
   const accounts = await listBankingAccounts(db, user.$id);
 
   return (
-    <section className="payment-transfer flex flex-col items-center">
-      <div className="w-full max-w-4xl">
+    <section className="payment-transfer">
+      <div className="w-full min-w-0">
         <HeaderBox
           title="Payment Transfer"
           subtext="Send funds between simulated TD Banking accounts."

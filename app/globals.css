@@ -641,11 +641,11 @@
 
   /* Payment Transfer */
   .payment-transfer {
-    @apply no-scrollbar flex flex-col overflow-y-scroll bg-gray-25 p-8 md:max-h-screen xl:py-12;
+    @apply flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-y-auto bg-gray-25 p-5 sm:p-8 xl:py-12;
   }
 
   .payment-transfer_form-item {
-    @apply flex w-full max-w-[850px] flex-col gap-3 md:flex-row lg:gap-8;
+    @apply flex w-full flex-col gap-3 md:flex-row lg:gap-8;
   }
 
   .payment-transfer_form-content {
@@ -657,7 +657,7 @@
   }
 
   .payment-transfer_btn-box {
-    @apply mt-5 flex w-full max-w-[850px] gap-3 border-gray-200 py-5;
+    @apply mt-5 flex w-full gap-3 border-gray-200 py-5;
   }
 
   .payment-transfer_btn {

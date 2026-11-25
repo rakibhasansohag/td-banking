@@ -3,8 +3,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function LoadingTransfer() {
   return (
-    <section className="payment-transfer items-center" aria-busy="true" aria-label="Loading payment transfer">
-      <div className="w-full max-w-4xl">
+    <section className="payment-transfer" aria-busy="true" aria-label="Loading payment transfer">
+      <div className="w-full min-w-0">
         <HeaderBox title="Payment Transfer" subtext="Send funds between simulated TD Banking accounts." />
         <div className="pt-5">
           {[0, 1].map((field) => (
