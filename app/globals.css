@@ -1,6 +1,19 @@
 @import "tailwindcss";
 @config "../tailwind.config.js";
 
+.overview-summary {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 21rem), 1fr));
+}
+
+@keyframes cash-flow-reveal {
+  from { scale: 1 0; }
+  to { scale: 1 1; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cash-flow-bar { transform-origin: bottom; animation: cash-flow-reveal 200ms ease-out both; }
+}
+
 @keyframes drawer-slide {
   from { transform: translateX(-100%); }
   to { transform: translateX(0); }
@@ -412,11 +425,16 @@
   }
 
   .banktab-item {
-    @apply flex min-w-36 flex-col items-start gap-1 border-b-2 border-transparent px-3 py-3 text-left transition-colors sm:min-w-44 sm:px-4;
+    @apply relative flex min-w-36 flex-col items-start gap-1 px-3 py-3 text-left sm:min-w-44 sm:px-4;
   }
 
-  .banktab-item.is-active {
-    @apply border-gray-900;
+  .banktab-item::after {
+    content: "";
+    @apply absolute inset-x-0 bottom-0 h-0.5 origin-left scale-x-0 bg-blue-600 motion-safe:transition-transform motion-safe:duration-150;
+  }
+
+  .banktab-item.is-active::after {
+    @apply scale-x-100;
   }
 
   .banktab-account-name {

@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BankTabItem } from "./BankTabItem";
-import BankInfo from "./BankInfo";
 import TransactionsTable from "./TransactionsTable";
 import Pagination from "./Pagination";
 import type { BankingAccount } from "@/lib/banking";
@@ -59,8 +58,8 @@ export default function RecentTransactions({
           Add a simulated account to see sample balances and transactions.
         </p>
       ) : (
-        <Tabs value={selectedAccountId} onValueChange={changeAccount} className="w-full min-w-0">
-          <TabsList className="recent-transactions-tablist max-w-full overflow-x-auto justify-start rounded-none bg-transparent p-0 h-auto">
+        <Tabs value={selectedAccountId} onValueChange={changeAccount} activationMode="manual" className="w-full min-w-0">
+          <TabsList aria-label="Accounts for recent transactions" className="recent-transactions-tablist max-w-full overflow-x-auto justify-start rounded-none bg-transparent p-0 h-auto">
             {accounts.map((account) => (
               <TabsTrigger
                 key={account.id}
@@ -73,7 +72,6 @@ export default function RecentTransactions({
           </TabsList>
           {accounts.map((account) => (
             <TabsContent value={account.id} key={account.id} className="min-w-0 space-y-4">
-              <BankInfo account={account} selectedAccountId={selectedAccountId} type="full" />
               {transactions.length ? (
                 <div className="w-full min-w-0 overflow-x-auto">
                   <TransactionsTable transactions={transactions} />

@@ -8,7 +8,7 @@ import { addDemoBankAccount } from "@/lib/actions/banking-ui.actions";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export default function AddDemoBank({ variant = "default", collapsed = false }: { variant?: "default" | "primary" | "ghost" | "sidebar"; collapsed?: boolean }) {
+export default function AddDemoBank({ variant = "default", collapsed = false, label = "Add demo bank" }: { variant?: "default" | "primary" | "ghost" | "sidebar"; collapsed?: boolean; label?: string }) {
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
   const [requestKey, setRequestKey] = useState("");
@@ -34,8 +34,8 @@ export default function AddDemoBank({ variant = "default", collapsed = false }: 
     <Button
       onClick={addAccount}
       disabled={isPending}
-      aria-label={isPending ? "Adding demo bank" : "Add demo bank"}
-      title={collapsed ? (isPending ? "Adding demo bank" : "Add demo bank") : undefined}
+      aria-label={isPending ? "Creating demo account" : label}
+      title={collapsed ? (isPending ? "Creating demo account" : label) : undefined}
       className={cn(
         variant === "sidebar" ? "sidebar-link h-auto w-full bg-transparent p-3 hover:bg-gray-50" : `bank-action-${variant}`,
         variant === "sidebar" && (collapsed ? "justify-center gap-0 px-0" : "justify-start"),
@@ -48,8 +48,8 @@ export default function AddDemoBank({ variant = "default", collapsed = false }: 
         height={28}
         className={variant === "sidebar" ? "size-7 shrink-0" : "size-6"}
       />
-      <span className={collapsed ? "sidebar-action-label" : "text-[16px] font-semibold text-black-2"}>
-        {isPending ? "Adding demo bank…" : "Add demo bank"}
+      <span className={cn(collapsed ? "sidebar-action-label" : "text-[16px] font-semibold", variant === "primary" ? "text-white" : "text-black-2")}>
+        {isPending ? "Creating demo account…" : label}
       </span>
     </Button>
   );
