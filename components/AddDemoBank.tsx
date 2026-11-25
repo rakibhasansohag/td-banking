@@ -3,11 +3,12 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState, type FormEvent } from "react";
-import * as Dialog from "@radix-ui/react-dialog";
 import { toast } from "sonner";
 import { addDemoBankAccount } from "@/lib/actions/banking-ui.actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 export default function AddDemoBank({ variant = "default", collapsed = false, label = "Add demo bank" }: { variant?: "default" | "primary" | "ghost" | "sidebar"; collapsed?: boolean; label?: string }) {
@@ -49,7 +50,8 @@ export default function AddDemoBank({ variant = "default", collapsed = false, la
     }
   }
 
-  const selectClass = "h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-base text-gray-900 focus-visible:outline-2 focus-visible:outline-blue-600 sm:text-sm";
+  const selectClass = "h-11 rounded-lg border-gray-300 bg-white text-base text-gray-900 focus:ring-blue-600 sm:text-sm";
+  const menuClass = "z-[70] w-[var(--radix-select-trigger-width)] rounded-lg border-gray-200 bg-white text-gray-900 shadow-lg";
 
   function changeOpen(next: boolean) {
     if (submitting.current) return;
@@ -58,8 +60,8 @@ export default function AddDemoBank({ variant = "default", collapsed = false, la
   }
 
   return (
-    <Dialog.Root open={open} onOpenChange={changeOpen}>
-      <Dialog.Trigger asChild>
+    <Dialog open={open} onOpenChange={changeOpen}>
+      <DialogTrigger asChild>
         <Button
           type="button"
           aria-label={label}
@@ -74,12 +76,10 @@ export default function AddDemoBank({ variant = "default", collapsed = false, la
             {label}
           </span>
         </Button>
-      </Dialog.Trigger>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-[60] bg-gray-950/50" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-[61] max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-gray-200 bg-white p-5 shadow-xl sm:p-6">
-          <Dialog.Title className="text-xl font-semibold text-gray-900">Create a demo account</Dialog.Title>
-          <Dialog.Description className="mt-2 text-sm leading-6 text-gray-600">Use the defaults or customize the account. The balance and activity use simulated money.</Dialog.Description>
+      </DialogTrigger>
+      <DialogContent className="max-w-md">
+          <DialogTitle className="text-xl font-semibold text-gray-900">Create a demo account</DialogTitle>
+          <DialogDescription className="mt-2 text-sm leading-6 text-gray-600">Use the defaults or customize the account. The balance and activity use simulated money.</DialogDescription>
           <form onSubmit={addAccount} className="mt-5 space-y-4" aria-busy={isPending}>
             <fieldset disabled={isPending} className="space-y-4">
               <div className="space-y-1.5">
@@ -88,28 +88,33 @@ export default function AddDemoBank({ variant = "default", collapsed = false, la
               </div>
               <div className="space-y-1.5">
                 <label htmlFor={`${id}-type`} className="block text-sm font-medium text-gray-900">Account type</label>
-                <select id={`${id}-type`} name="type" defaultValue="checking" className={selectClass}>
-                  <option value="checking">Checking</option>
-                  <option value="savings">Savings</option>
-                </select>
+                <Select name="type" defaultValue="checking" disabled={isPending}>
+                  <SelectTrigger id={`${id}-type`} className={selectClass}><SelectValue /></SelectTrigger>
+                  <SelectContent align="start" className={menuClass}>
+                    <SelectItem value="checking" className="focus:bg-gray-100">Checking</SelectItem>
+                    <SelectItem value="savings" className="focus:bg-gray-100">Savings</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1.5">
                 <label htmlFor={`${id}-balance`} className="block text-sm font-medium text-gray-900">Starting balance</label>
-                <select id={`${id}-balance`} name="balance" defaultValue="1250" className={selectClass}>
-                  <option value="250">$250</option>
-                  <option value="1250">$1,250</option>
-                  <option value="5000">$5,000</option>
-                </select>
+                <Select name="balance" defaultValue="1250" disabled={isPending}>
+                  <SelectTrigger id={`${id}-balance`} className={selectClass}><SelectValue /></SelectTrigger>
+                  <SelectContent align="start" className={menuClass}>
+                    <SelectItem value="250" className="focus:bg-gray-100">$250</SelectItem>
+                    <SelectItem value="1250" className="focus:bg-gray-100">$1,250</SelectItem>
+                    <SelectItem value="5000" className="focus:bg-gray-100">$5,000</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </fieldset>
             {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
             <div className="flex flex-wrap justify-end gap-2">
-              <Dialog.Close asChild><Button type="button" variant="outline" disabled={isPending}>Cancel</Button></Dialog.Close>
+              <DialogClose asChild><Button type="button" variant="outline" disabled={isPending}>Cancel</Button></DialogClose>
               <Button type="submit" disabled={isPending} className="bg-blue-700 text-white hover:bg-blue-800">{isPending ? "Creating…" : "Create account"}</Button>
             </div>
           </form>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+      </DialogContent>
+    </Dialog>
   );
 }
