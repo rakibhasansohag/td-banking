@@ -12,6 +12,7 @@ import type { BankingAccount } from "@/lib/banking";
 import { submitBankingTransfer } from "@/lib/actions/transfer.actions";
 import { BankDropdown } from "./BankDropdown";
 import RecipientSearch from "./RecipientSearch";
+import type { TransferRecipient } from "@/lib/actions/recipient.actions";
 import { Button } from "./ui/button";
 import {
   Form,
@@ -96,13 +97,18 @@ const PaymentTransferForm = ({ accounts }: { accounts: BankingAccount[] }) => {
     void form.handleSubmit(submit)(event);
   };
 
+  function selectRecipient({ email, code }: TransferRecipient) {
+    form.setValue("email", email, { shouldValidate: true, shouldDirty: true });
+    form.setValue("sharableId", code, { shouldValidate: true, shouldDirty: true });
+  }
+
   return (
     <Form {...form}>
       <form onSubmit={handleFormSubmit} className="flex flex-col" aria-busy={isLoading}>
         <FormField
           control={form.control}
           name="senderBank"
-          render={() => (
+          render={({ field }) => (
             <FormItem className="border-t border-gray-200">
               <div className="payment-transfer_form-item pb-6 pt-5">
                 <div className="payment-transfer_form-content">
@@ -115,8 +121,10 @@ const PaymentTransferForm = ({ accounts }: { accounts: BankingAccount[] }) => {
                   <FormControl>
                     <BankDropdown
                       accounts={accounts}
-                      setValue={form.setValue}
-                      otherStyles="!w-full"
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
                     />
                   </FormControl>
                   <FormMessage className="text-12 text-red-500" />
@@ -151,13 +159,8 @@ const PaymentTransferForm = ({ accounts }: { accounts: BankingAccount[] }) => {
 
         <div className="payment-transfer_form-details">
           <h2 className="text-18 font-semibold text-gray-900">Bank account details</h2>
-          <p className="text-16 font-normal text-gray-600">For a first transfer, ask the recipient for their email and the share code from My Banks.</p>
+          <p className="text-16 font-normal text-gray-600">Type in either field to find a previous recipient. For a first transfer, ask for their email and the share code from My Banks.</p>
         </div>
-
-        <RecipientSearch onSelect={({ email, code }) => {
-          form.setValue("email", email, { shouldValidate: true, shouldDirty: true });
-          form.setValue("sharableId", code, { shouldValidate: true, shouldDirty: true });
-        }} />
 
         <FormField
           control={form.control}
@@ -167,7 +170,7 @@ const PaymentTransferForm = ({ accounts }: { accounts: BankingAccount[] }) => {
               <div className="payment-transfer_form-item py-5">
                 <FormLabel className="text-14 w-full max-w-[280px] font-medium text-gray-700">Recipient&apos;s Email Address</FormLabel>
                 <div className="flex w-full flex-col">
-                  <FormControl><Input type="email" autoComplete="email" placeholder="ex: johndoe@gmail.com" className="input-class" {...field} /></FormControl>
+                  <FormControl><RecipientSearch type="email" autoComplete="off" placeholder="name@example.com" maxLength={254} className="input-class" onSelectRecipient={selectRecipient} {...field} /></FormControl>
                   <FormMessage className="text-12 text-red-500" />
                 </div>
               </div>
@@ -183,7 +186,7 @@ const PaymentTransferForm = ({ accounts }: { accounts: BankingAccount[] }) => {
               <div className="payment-transfer_form-item pb-5 pt-6">
                 <FormLabel className="text-14 w-full max-w-[280px] font-medium text-gray-700">Recipient Share Code</FormLabel>
                 <div className="flex w-full flex-col">
-                  <FormControl><Input autoComplete="off" placeholder="Enter the recipient's share code" className="input-class" {...field} /></FormControl>
+                  <FormControl><RecipientSearch autoComplete="off" placeholder="Enter the recipient's share code" maxLength={100} className="input-class" onSelectRecipient={selectRecipient} {...field} /></FormControl>
                   <FormMessage className="text-12 text-red-500" />
                 </div>
               </div>

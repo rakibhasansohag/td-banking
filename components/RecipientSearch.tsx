@@ -1,13 +1,17 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useState, type ComponentPropsWithRef } from "react";
 import { Input } from "@/components/ui/input";
 import { searchTransferRecipients, type TransferRecipient } from "@/lib/actions/recipient.actions";
 
-export default function RecipientSearch({ onSelect }: { onSelect: (recipient: TransferRecipient) => void }) {
+type RecipientInputProps = Omit<ComponentPropsWithRef<typeof Input>, "onSelect" | "value"> & {
+  value: string;
+  onSelectRecipient: (recipient: TransferRecipient) => void;
+};
+
+export default function RecipientSearch({ value, onSelectRecipient, onChange, onBlur, ...inputProps }: RecipientInputProps) {
   const id = useId();
-  const [query, setQuery] = useState("");
-  const term = query.trim();
+  const term = value.trim();
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
   const [result, setResult] = useState<{ term: string; items: TransferRecipient[]; failed?: boolean }>();
@@ -32,30 +36,23 @@ export default function RecipientSearch({ onSelect }: { onSelect: (recipient: Tr
   }, [expanded, term]);
 
   function select(recipient: TransferRecipient) {
-    onSelect(recipient);
-    setQuery("");
+    onSelectRecipient(recipient);
     setOpen(false);
     setActive(-1);
   }
 
   return (
-    <div className="mb-5 space-y-2">
-      <label htmlFor={id} className="text-sm font-medium text-gray-700">Find a previous recipient</label>
+    <div className="relative min-w-0">
       <Input
-        id={id}
-        className="input-class"
-        placeholder="Search by email or share code"
-        value={query}
-        maxLength={254}
-        autoComplete="off"
+        {...inputProps}
+        value={value}
         role="combobox"
         aria-autocomplete="list"
         aria-expanded={expanded}
         aria-controls={expanded ? `${id}-results` : undefined}
         aria-activedescendant={expanded && items[active] ? `${id}-option-${active}` : undefined}
-        onChange={(event) => { setQuery(event.target.value); setOpen(true); setActive(-1); }}
-        onFocus={() => setOpen(true)}
-        onBlur={() => { setOpen(false); setActive(-1); }}
+        onChange={(event) => { onChange?.(event); setOpen(true); setActive(-1); }}
+        onBlur={(event) => { onBlur?.(event); setOpen(false); setActive(-1); }}
         onKeyDown={(event) => {
           if (event.key === "Escape") { setOpen(false); setActive(-1); }
           if (event.key === "ArrowDown" || event.key === "ArrowUp") {
@@ -63,14 +60,14 @@ export default function RecipientSearch({ onSelect }: { onSelect: (recipient: Tr
             setOpen(true);
             setActive((index) => event.key === "ArrowDown" ? Math.min(index + 1, items.length - 1) : Math.max(index - 1, 0));
           }
-          if (event.key === "Enter") {
+          if (event.key === "Enter" && expanded && items[active]) {
             event.preventDefault();
-            if (expanded && items[active]) select(items[active]);
+            select(items[active]);
           }
         }}
       />
       {expanded && (
-        <div className="max-h-64 overflow-y-auto rounded-md border border-gray-200 bg-white p-1 shadow-sm">
+        <div className="mt-1 max-h-56 overflow-y-auto rounded-lg border border-gray-200 bg-white p-1 shadow-sm sm:absolute sm:inset-x-0 sm:z-20">
           <ul id={`${id}-results`} role="listbox" aria-label="Previous recipients">
             {items.map((recipient, index) => (
               <li
@@ -80,7 +77,7 @@ export default function RecipientSearch({ onSelect }: { onSelect: (recipient: Tr
                 aria-selected={index === active}
                 className="cursor-pointer break-all rounded px-3 py-2 text-sm hover:bg-gray-100 aria-selected:bg-gray-100"
                 onPointerMove={() => setActive(index)}
-                onMouseDown={(event) => event.preventDefault()}
+                onPointerDown={(event) => event.preventDefault()}
                 onClick={() => select(recipient)}
               >
                 {recipient.email} <span className="text-gray-600">· Account ending {recipient.mask}</span>
@@ -89,7 +86,7 @@ export default function RecipientSearch({ onSelect }: { onSelect: (recipient: Tr
           </ul>
           {!items.length && (
             <p role="status" className="px-3 py-2 text-sm text-gray-600">
-              {result?.term !== term ? "Searching…" : result.failed ? "Suggestions are unavailable. Enter the details below." : "No previous recipients match."}
+              {result?.term !== term ? "Searching previous recipients…" : result.failed ? "Suggestions unavailable. You can still enter the details manually." : "No previous recipients match."}
             </p>
           )}
         </div>
