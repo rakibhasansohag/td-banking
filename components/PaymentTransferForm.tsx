@@ -11,6 +11,7 @@ import * as z from "zod";
 import type { BankingAccount } from "@/lib/banking";
 import { submitBankingTransfer } from "@/lib/actions/transfer.actions";
 import { BankDropdown } from "./BankDropdown";
+import RecipientSearch from "./RecipientSearch";
 import { Button } from "./ui/button";
 import {
   Form,
@@ -150,8 +151,13 @@ const PaymentTransferForm = ({ accounts }: { accounts: BankingAccount[] }) => {
 
         <div className="payment-transfer_form-details">
           <h2 className="text-18 font-semibold text-gray-900">Bank account details</h2>
-          <p className="text-16 font-normal text-gray-600">Enter the recipient&apos;s share code and account email.</p>
+          <p className="text-16 font-normal text-gray-600">For a first transfer, ask the recipient for their email and the share code from My Banks.</p>
         </div>
+
+        <RecipientSearch onSelect={({ email, code }) => {
+          form.setValue("email", email, { shouldValidate: true, shouldDirty: true });
+          form.setValue("sharableId", code, { shouldValidate: true, shouldDirty: true });
+        }} />
 
         <FormField
           control={form.control}
