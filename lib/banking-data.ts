@@ -13,7 +13,6 @@ import type { AuthUserView } from "@/lib/auth.types";
 export type UiTransaction = BankingActivity & {
   type: "debit" | "credit";
   pending: boolean;
-  accountId: string;
   image: string;
 };
 
@@ -65,7 +64,7 @@ export async function getAccountActivityPage({
   limit = 10,
 }: {
   ownerUserId: string;
-  accountId: string;
+  accountId?: string;
   page?: number;
   limit?: number;
 }) {
@@ -77,7 +76,6 @@ export async function getAccountActivityPage({
       ...transaction,
       type: transaction.direction,
       pending: false,
-      accountId,
       image: "",
     })),
   };

@@ -17,14 +17,16 @@ type TableTransaction = {
   pending: boolean;
   paymentChannel: string;
   category: string;
+  accountMask?: string;
 };
 
-const TransactionsTable = ({ transactions }: { transactions: TableTransaction[] }) => (
+const TransactionsTable = ({ transactions, showAccount = false }: { transactions: TableTransaction[]; showAccount?: boolean }) => (
   <div className="transactions-table-wrap">
     <Table className="transactions-table">
       <TableHeader className="transactions-table-header">
         <TableRow>
           <TableHead>Transaction</TableHead>
+          {showAccount && <TableHead className="max-lg:hidden">Account</TableHead>}
           <TableHead className="text-right">Amount</TableHead>
           <TableHead className="max-lg:hidden">Status</TableHead>
           <TableHead className="max-lg:hidden">Date</TableHead>
@@ -42,10 +44,14 @@ const TransactionsTable = ({ transactions }: { transactions: TableTransaction[] 
             <TableRow key={transaction.id} className="transactions-table-row">
               <TableCell className="transaction-name-cell">
                 <span className="transaction-name">{removeSpecialCharacters(transaction.name)}</span>
+                {showAccount && transaction.accountMask && (
+                  <span className="mt-1 block text-xs font-medium text-gray-600 lg:hidden">Ending in {transaction.accountMask}</span>
+                )}
                 <span className="transaction-mobile-detail lg:hidden">
                   {date} · {transaction.category} · {transaction.pending ? "Processing" : "Complete"}
                 </span>
               </TableCell>
+              {showAccount && <TableCell className="whitespace-nowrap text-gray-600 max-lg:hidden">{transaction.accountMask ? `Ending in ${transaction.accountMask}` : "—"}</TableCell>}
               <TableCell className={`transaction-amount ${isDebit ? "is-debit" : "is-credit"}`}>
                 {signedAmount}
               </TableCell>

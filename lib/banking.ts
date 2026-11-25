@@ -36,6 +36,7 @@ export type BankingAccount = {
 
 export type BankingActivity = {
   id: string;
+  accountId: string;
   name: string;
   amount: number;
   direction: "debit" | "credit";
@@ -242,32 +243,33 @@ export async function listBankingAccounts(pool: Pool, ownerUserId: string): Prom
 
 export async function listAccountActivity(
   pool: Pool,
-  input: { ownerUserId: string; accountId: string; page?: number; limit?: number },
+  input: { ownerUserId: string; accountId?: string; page?: number; limit?: number },
 ): Promise<ActivityPage> {
   const owner = assertText(input.ownerUserId, "Owner user ID");
-  const accountId = assertText(input.accountId, "Account ID");
+  const accountId = input.accountId === undefined ? null : assertText(input.accountId, "Account ID");
   const limit = input.limit ?? DEFAULT_PAGE_SIZE;
   const page = input.page ?? 1;
   if (!Number.isInteger(limit) || limit < 1 || limit > MAX_PAGE_SIZE) throw new BankingError("INVALID_PAGE_SIZE", `Page size must be between 1 and ${MAX_PAGE_SIZE}.`);
   if (!Number.isSafeInteger(page) || page < 1) throw new BankingError("INVALID_PAGE", "Page must be a positive safe integer.");
   const result = await pool.query<DbRow>(`
     WITH owned AS (
-      SELECT id FROM banking_accounts WHERE id = $1 AND owner_user_id = $2
+      SELECT id FROM banking_accounts
+      WHERE owner_user_id = $2 AND ($1::text IS NULL OR id = $1)
     ), activity_count AS (
-      SELECT owned.id AS account_id, (
-        SELECT COUNT(*) FROM banking_ledger_entries WHERE account_id = owned.id
-      ) AS total FROM owned
+      SELECT COUNT(*) AS total FROM banking_ledger_entries ledger
+      JOIN owned ON owned.id = ledger.account_id
     )
     SELECT activity_count.total, entry.*
     FROM activity_count
     LEFT JOIN LATERAL (
-      SELECT * FROM banking_ledger_entries
-      WHERE account_id = activity_count.account_id
-      ORDER BY created_at DESC, id DESC
+      SELECT ledger.* FROM banking_ledger_entries ledger
+      JOIN owned ON owned.id = ledger.account_id
+      ORDER BY ledger.created_at DESC, ledger.id DESC
       LIMIT $3::integer
       OFFSET LEAST(($4::bigint - 1)::numeric * $3::integer,
         (GREATEST(activity_count.total, 1) - 1) / $3::integer * $3::integer)::bigint
     ) entry ON true
+    WHERE $1::text IS NULL OR EXISTS (SELECT 1 FROM owned)
     ORDER BY entry.created_at DESC, entry.id DESC`, [accountId, owner, limit, page]);
   if (!result.rows.length) throw new BankingError("ACCOUNT_NOT_FOUND", "Account was not found.");
   const totalRows = Number(result.rows[0].total);
@@ -277,7 +279,7 @@ export async function listAccountActivity(
   const transactions = result.rows.filter((row) => row.id != null).map((row): BankingActivity => {
     const value = cents(row, "signed_cents");
     return {
-      id: String(row.id), name: String(row.description), amount: Math.abs(value) / 100,
+      id: String(row.id), accountId: String(row.account_id), name: String(row.description), amount: Math.abs(value) / 100,
       direction: value < 0 ? "debit" : "credit", date: timestamp(row.created_at),
       paymentChannel: String(row.payment_channel), category: String(row.category),
       transferId: row.transfer_id == null ? null : String(row.transfer_id),

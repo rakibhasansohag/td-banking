@@ -47,8 +47,8 @@ export default function RecentTransactions({
       <header className="flex items-center justify-between gap-3">
         <h2 className="recent-transactions-label">Recent transactions</h2>
         {selectedAccountId && (
-          <Link href={`/transaction-history/?id=${selectedAccountId}`} className="view-all-btn">
-            View all
+          <Link href={`/transaction-history?id=${selectedAccountId}`} className="view-all-btn">
+            View account history
           </Link>
         )}
       </header>
