@@ -1,6 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
+import { cache } from "react";
 import { z } from "zod";
 import { getAuth } from "../auth";
 import { checkAuthRateLimit } from "../auth-rate-limit";
@@ -63,9 +64,13 @@ export async function signIn(input: { email: string; password: string }) {
   return toUserView(result.user);
 }
 
-export async function getLoggedInUser(): Promise<AuthUserView | null> {
+const readSessionUser = cache(async (): Promise<AuthUserView | null> => {
   const session = await getAuth().api.getSession({ headers: await headers() });
   return session?.user ? toUserView(session.user) : null;
+});
+
+export async function getLoggedInUser(): Promise<AuthUserView | null> {
+  return readSessionUser();
 }
 
 export async function logoutAccount(): Promise<boolean> {

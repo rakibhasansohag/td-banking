@@ -250,17 +250,31 @@ export async function listAccountActivity(
   const page = input.page ?? 1;
   if (!Number.isInteger(limit) || limit < 1 || limit > MAX_PAGE_SIZE) throw new BankingError("INVALID_PAGE_SIZE", `Page size must be between 1 and ${MAX_PAGE_SIZE}.`);
   if (!Number.isSafeInteger(page) || page < 1) throw new BankingError("INVALID_PAGE", "Page must be a positive safe integer.");
-  const owns = await pool.query("SELECT id FROM banking_accounts WHERE id = $1 AND owner_user_id = $2", [accountId, owner]);
-  if (!owns.rowCount) throw new BankingError("ACCOUNT_NOT_FOUND", "Account was not found.");
-  const countResult = await pool.query<DbRow>("SELECT COUNT(*)::text AS total FROM banking_ledger_entries WHERE account_id = $1", [accountId]);
-  const totalRows = Number(countResult.rows[0]?.total ?? 0);
+  const result = await pool.query<DbRow>(`
+    WITH owned AS (
+      SELECT id FROM banking_accounts WHERE id = $1 AND owner_user_id = $2
+    ), activity_count AS (
+      SELECT owned.id AS account_id, (
+        SELECT COUNT(*) FROM banking_ledger_entries WHERE account_id = owned.id
+      ) AS total FROM owned
+    )
+    SELECT activity_count.total, entry.*
+    FROM activity_count
+    LEFT JOIN LATERAL (
+      SELECT * FROM banking_ledger_entries
+      WHERE account_id = activity_count.account_id
+      ORDER BY created_at DESC, id DESC
+      LIMIT $3::integer
+      OFFSET LEAST(($4::bigint - 1)::numeric * $3::integer,
+        (GREATEST(activity_count.total, 1) - 1) / $3::integer * $3::integer)::bigint
+    ) entry ON true
+    ORDER BY entry.created_at DESC, entry.id DESC`, [accountId, owner, limit, page]);
+  if (!result.rows.length) throw new BankingError("ACCOUNT_NOT_FOUND", "Account was not found.");
+  const totalRows = Number(result.rows[0].total);
   if (!Number.isSafeInteger(totalRows)) throw new BankingError("DATA_INTEGRITY", "Activity count exceeds supported range.");
   const totalPages = Math.ceil(totalRows / limit);
   const currentPage = Math.min(page, Math.max(totalPages, 1));
-  const offset = (currentPage - 1) * limit;
-  const result = await pool.query<DbRow>(`SELECT * FROM banking_ledger_entries
-    WHERE account_id = $1 ORDER BY created_at DESC, id DESC LIMIT $2 OFFSET $3`, [accountId, limit, offset]);
-  const transactions = result.rows.map((row): BankingActivity => {
+  const transactions = result.rows.filter((row) => row.id != null).map((row): BankingActivity => {
     const value = cents(row, "signed_cents");
     return {
       id: String(row.id), name: String(row.description), amount: Math.abs(value) / 100,
