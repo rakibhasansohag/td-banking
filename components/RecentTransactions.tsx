@@ -72,6 +72,7 @@ export default function RecentTransactions({
           </TabsList>
           {accounts.map((account) => (
             <TabsContent value={account.id} key={account.id} className="min-w-0 space-y-4">
+              <p className="text-sm text-gray-600">Showing activity for account ending in <strong className="text-gray-900">{account.mask}</strong></p>
               {transactions.length ? (
                 <div className="w-full min-w-0 overflow-x-auto">
                   <TransactionsTable transactions={transactions} />
