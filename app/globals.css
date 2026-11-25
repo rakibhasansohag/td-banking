@@ -1,6 +1,21 @@
 @import "tailwindcss";
 @config "../tailwind.config.js";
 
+@keyframes drawer-slide {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes drawer-dismiss {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mobile-drawer[data-state="open"] { animation: drawer-slide 240ms ease-out both; }
+  .mobile-drawer[data-state="closed"] { animation: drawer-dismiss 200ms ease-in both; }
+}
+
 @theme {
   --default-ring-width: 3px;
   --default-ring-color: var(--color-blue-500);
@@ -640,7 +655,7 @@
 
   /* Root Layout */
   .root-layout {
-    @apply flex h-16 items-center justify-between p-5 shadow-creditCard sm:p-8 md:hidden;
+    @apply flex h-16 shrink-0 items-center justify-between p-5 shadow-creditCard sm:p-8 md:hidden;
   }
 
   /* Bank Info */
