@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useOptimistic, useTransition } from "react";
+import { ChevronDown } from "lucide-react";
 
 type AccountOption = { id: string; name: string; mask: string };
 
@@ -11,6 +12,8 @@ export default function HistoryAccountFilter({ accounts, selectedAccountId }: {
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [pending, startTransition] = useTransition();
+  const [accountId, setAccountId] = useOptimistic(selectedAccountId ?? "all");
 
   function changeAccount(value: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -18,25 +21,27 @@ export default function HistoryAccountFilter({ accounts, selectedAccountId }: {
     else params.set("id", value);
     params.delete("page");
     const query = params.toString();
-    router.push(query ? `/transaction-history?${query}` : "/transaction-history", { scroll: false });
+    startTransition(() => {
+      setAccountId(value);
+      router.push(query ? `/transaction-history?${query}` : "/transaction-history", { scroll: false });
+    });
   }
 
   return (
     <div className="flex w-full min-w-0 flex-col gap-1.5 sm:max-w-80">
       <label htmlFor="history-account-filter" className="text-sm font-medium text-gray-700">Filter by account</label>
-      <Select value={selectedAccountId ?? "all"} onValueChange={changeAccount}>
-        <SelectTrigger id="history-account-filter" className="gap-2 rounded-lg border-gray-300 bg-white text-gray-900 focus:ring-blue-500 [&>svg]:shrink-0">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent position="popper" align="start" collisionPadding={12} className="max-h-[min(24rem,var(--radix-select-content-available-height))] w-[var(--radix-select-trigger-width)] rounded-xl border-gray-200 bg-white text-gray-900 shadow-lg">
-          <SelectItem value="all" className="py-2.5 focus:bg-gray-100 data-[state=checked]:bg-blue-50">All accounts</SelectItem>
+      <div className="relative">
+        <select id="history-account-filter" value={accountId} onChange={(event) => changeAccount(event.target.value)} aria-busy={pending} className="h-11 w-full appearance-none truncate rounded-lg border border-gray-300 bg-white pl-3 pr-9 text-base text-gray-900 focus-visible:outline-2 focus-visible:outline-blue-600 sm:text-sm">
+          <option value="all">All accounts</option>
           {accounts.map((account) => (
-            <SelectItem key={account.id} value={account.id} className="py-2.5 focus:bg-gray-100 data-[state=checked]:bg-blue-50">
+            <option key={account.id} value={account.id}>
               Ending in {account.mask} · {account.name}
-            </SelectItem>
+            </option>
           ))}
-        </SelectContent>
-      </Select>
+        </select>
+        <ChevronDown aria-hidden="true" size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-500" />
+      </div>
+      <p role="status" className="min-h-4 text-xs text-gray-600">{pending ? "Updating transactions…" : ""}</p>
     </div>
   );
 }

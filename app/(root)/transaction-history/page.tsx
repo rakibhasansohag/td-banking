@@ -4,6 +4,8 @@ import HistoryAccountFilter from "@/components/HistoryAccountFilter";
 import Pagination from "@/components/Pagination";
 import TransactionsTable from "@/components/TransactionsTable";
 import { getAccountActivityPage, getBankingPageData } from "@/lib/banking-data";
+import { getLoggedInUser } from "@/lib/actions/auth.actions";
+import { BankingError } from "@/lib/banking";
 import { formatAmount } from "@/lib/utils";
 
 type PageProps = {
@@ -18,9 +20,19 @@ export default async function TransactionHistory({ searchParams }: PageProps) {
   const query = await searchParams;
   const requestedId = first(query.id);
   const requestedPage = Number(first(query.page));
-  const { user, accounts } = await getBankingPageData();
+  const user = await getLoggedInUser();
+  const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const accountId = requestedId && requestedId.trim() === requestedId && requestedId.length <= 200 ? requestedId : undefined;
 
-  if (accounts.length === 0 || !user) {
+  const [{ accounts }, activity] = await Promise.all([
+    getBankingPageData(),
+    user ? getAccountActivityPage({ ownerUserId: user.$id, accountId, page }).catch((error: unknown) => {
+      if (!(error instanceof BankingError) || error.code !== "ACCOUNT_NOT_FOUND") throw error;
+      return getAccountActivityPage({ ownerUserId: user.$id, page });
+    }) : null,
+  ]);
+
+  if (accounts.length === 0 || !activity) {
     return (
       <div className="transactions min-w-0">
         <HeaderBox title="Transaction History" subtext="See activity for your simulated bank accounts." />
@@ -35,13 +47,6 @@ export default async function TransactionHistory({ searchParams }: PageProps) {
   const account = accounts.find((item) => item.id === requestedId);
   const accountMasks = new Map(accounts.map(({ id, mask }) => [id, mask]));
   const balance = account?.currentBalance ?? accounts.reduce((sum, item) => sum + Math.round(item.currentBalance * 100), 0) / 100;
-  const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
-  const activity = await getAccountActivityPage({
-    ownerUserId: user.$id,
-    accountId: account?.id,
-    page,
-    limit: 10,
-  });
 
   return (
     <div className="transactions min-w-0">
