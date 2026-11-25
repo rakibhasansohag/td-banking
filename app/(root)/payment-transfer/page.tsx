@@ -23,7 +23,7 @@ export default async function Transfer() {
         />
         <section className="size-full pt-5">
           {accounts.length > 0 ? (
-            <PaymentTransferForm accounts={accounts} />
+            <PaymentTransferForm accounts={accounts.map(({ id, name, mask, currentBalance }) => ({ id, name, mask, currentBalance }))} />
           ) : (
             <div className="flex flex-col items-center gap-4 rounded-xl border border-gray-200 bg-white p-6 text-center text-gray-600">
               <p className="text-lg">Add a simulated account before sending a transfer.</p>

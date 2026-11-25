@@ -8,9 +8,8 @@ import type { FormEventHandler } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
-import type { BankingAccount } from "@/lib/banking";
 import { submitBankingTransfer } from "@/lib/actions/transfer.actions";
-import { BankDropdown } from "./BankDropdown";
+import { AccountPicker, type AccountPickerOption } from "./AccountPicker";
 import RecipientSearch from "./RecipientSearch";
 import type { TransferRecipient } from "@/lib/actions/recipient.actions";
 import { Button } from "./ui/button";
@@ -40,7 +39,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 const transferKeyStorage = "td-banking-transfer-idempotency-key";
 
-const PaymentTransferForm = ({ accounts }: { accounts: BankingAccount[] }) => {
+const PaymentTransferForm = ({ accounts }: { accounts: AccountPickerOption[] }) => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState<{ ok: boolean; message: string } | null>(null);
@@ -119,8 +118,10 @@ const PaymentTransferForm = ({ accounts }: { accounts: BankingAccount[] }) => {
                 </div>
                 <div className="flex w-full flex-col">
                   <FormControl>
-                    <BankDropdown
+                    <AccountPicker
                       accounts={accounts}
+                      showWallet
+                      className="min-h-14 sm:max-w-sm"
                       value={field.value}
                       onValueChange={field.onChange}
                       onBlur={field.onBlur}

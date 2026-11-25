@@ -13,7 +13,9 @@ export default function LoadingTransfer() {
                 <Skeleton className="h-4 w-36" />
                 <Skeleton className="h-3 w-48 max-w-full" />
               </div>
-              <Skeleton className={field === 0 ? "h-14 w-full" : "h-20 w-full"} />
+              <div className="w-full min-w-0">
+                <Skeleton className={field === 0 ? "h-14 w-full sm:max-w-sm" : "h-20 w-full"} />
+              </div>
             </div>
           ))}
           <div className="payment-transfer_form-details">
